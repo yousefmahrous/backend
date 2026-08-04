@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const studentService = require('./student.service');
-
 const { validateAdd, validateEdit } = require('../../core/middlewares/validation');
 const authMiddleware = require('../../core/middlewares/auth.middleware');
 const requireAdmin = require('../../core/middlewares/admin.middleware');

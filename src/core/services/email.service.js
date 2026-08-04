@@ -29,4 +29,25 @@ const sendWelcomeEmail = async (userEmail, userName) => {
   }
 };
 
-module.exports = { sendWelcomeEmail };
+const sendResetPasswordEmail = async (email, resetLink) => {
+  try {
+    await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: [email],
+      subject: 'إعادة تعيين كلمة المرور',
+      html: `
+        <div style="direction: rtl; text-align: right; font-family: sans-serif;">
+          <h2>طلب إعادة تعيين كلمة المرور</h2>
+          <p>وصلنا طلب لإعادة تعيين كلمة المرور الخاصة بحسابك.</p>
+          <p>اضغط على الرابط التالي لإعادة التعيين (الرابط صالحة لمدة ساعة واحدة فقط):</p>
+          <a href="${resetLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">إعادة تعيين كلمة المرور</a>
+          <p>إذا لم تطلب هذا التغيير، يمكنك تجاهل هذا الإيميل بآمان.</p>
+        </div>
+      `
+    });
+  } catch (error) {
+    console.error('فشل إرسال إيميل إعادة التعيين:', error);
+  }
+};
+
+module.exports = { sendWelcomeEmail, sendResetPasswordEmail };

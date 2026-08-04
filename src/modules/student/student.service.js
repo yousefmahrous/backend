@@ -1,8 +1,16 @@
 const studentRepo = require('./student.repository');
+const redisClient = require('../../core/config/redis.client');
 
 const getAllStudents = async () => {
   try {
+    const cachedUsers = await redisClient.get('students:all');
+    if (cachedUsers) {
+      return { success: true, status: 200, data: { users: JSON.parse(cachedUsers) } };
+    }
+
     const users = await studentRepo.getAllStudents();
+    await redisClient.set('students:all', JSON.stringify(users), { EX: 3600 });
+
     return { success: true, status: 200, data: { users } };
   } catch (err) {
     console.error(err);
@@ -12,10 +20,18 @@ const getAllStudents = async () => {
 
 const getStudentById = async (id) => {
   try {
+    const cachedUser = await redisClient.get(`students:${id}`);
+    if (cachedUser) {
+      return { success: true, status: 200, data: { user: JSON.parse(cachedUser) } };
+    }
+
     const user = await studentRepo.getStudentById(id);
     if (!user) {
       return { success: false, status: 404, message: "المستخدم غير موجود" };
     }
+
+    await redisClient.set(`students:${id}`, JSON.stringify(user), { EX: 3600 });
+
     return { success: true, status: 200, data: { user } };
   } catch (err) {
     console.error(err);
@@ -31,6 +47,8 @@ const addStudent = async (studentData) => {
     }
 
     await studentRepo.createStudent(studentData);
+    await redisClient.del('students:all');
+
     return { success: true, status: 201, message: "تم تسجيل الطالب بنجاح" };
   } catch (err) {
     console.error(err);
@@ -41,6 +59,8 @@ const addStudent = async (studentData) => {
 const deleteStudent = async (id) => {
   try {
     await studentRepo.deleteStudent(id);
+    await redisClient.del(['students:all', `students:${id}`]);
+
     return { success: true, status: 200, message: "تم حذف الطالب بنجاح" };
   } catch (err) {
     console.error(err);
@@ -57,6 +77,8 @@ const editStudent = async (id, studentData) => {
 
     const result = await studentRepo.updateStudent(id, studentData);
     if (result.rowCount > 0) {
+      await redisClient.del(['students:all', `students:${id}`]);
+
       return { success: true, status: 200, message: "تم تعديل بيانات الطالب بنجاح" };
     } else {
       return { success: false, status: 404, message: "الطالب غير موجود" };

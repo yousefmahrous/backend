@@ -4,8 +4,10 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const authRoutes = require('./modules/auth/auth.routes');
 const studentRoutes = require('./modules/student/student.routes');
+const sessionMiddleware = require('./core/config/session.config');
 
 const app = express();
+app.set('trust proxy', 1);
 
 const allowedOrigins = [
   'http://localhost:5173', 
@@ -32,6 +34,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(sessionMiddleware);
 
 app.use('/api', authRoutes);
 app.use('/api', studentRoutes);
