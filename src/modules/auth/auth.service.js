@@ -22,7 +22,6 @@ const signup = async (data) => {
 
 
 const login = async (data) => {
-  
   const user = await repository.findUserByEmail(data.email);
   if (!user) {
     throw new Error('الإيميل أو كلمة المرور غير صحيحة');
@@ -33,13 +32,14 @@ const login = async (data) => {
     throw new Error('الإيميل أو كلمة المرور غير صحيحة');
   }
 
+  const normalizedRole = user.role ? user.role.toLowerCase() : 'student';
+
   return { 
     id: user.id, 
     name: user.name, 
     email: user.email, 
-    role: user.role 
+    role: normalizedRole 
   };
-  
 };
 
 const forgotPassword = async (email) => {

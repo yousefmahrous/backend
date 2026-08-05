@@ -2,12 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
-const authRoutes = require('./modules/auth/auth.routes');
-const studentRoutes = require('./modules/student/student.routes');
+const authRoutes = require('./routes/v1/auth.routes');
+const studentRoutes = require('./routes/v1/auth.routes');
 const sessionMiddleware = require('./core/config/session.config');
 
 const app = express();
 app.set('trust proxy', 1);
+
+const v1Router = require('./routes/v1');
 
 const allowedOrigins = [
   'http://localhost:5173', 
@@ -36,8 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(sessionMiddleware);
 
-app.use('/api', authRoutes);
-app.use('/api', studentRoutes);
+app.use('/api/v1', v1Router);
 
 
 app.use((err, req, res, next) => {

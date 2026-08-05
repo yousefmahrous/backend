@@ -1,48 +1,86 @@
-const pool = require('../../core/db'); 
+const prisma = require('../../core/db')
 
-const getAllStudents = async () => {
-  const query = "SELECT * FROM bookings";
-  const result = await pool.query(query);
-  return result.rows;
+
+const getAllStudents = async (skip, take, search = "") => {
+  const whereCondition = search ? {
+    full_name: {
+      contains: search,
+    }
+  } : {};
+
+  const [students, totalCount] = await Promise.all([
+    prisma.booking.findMany({
+      where: whereCondition,
+      skip: skip,
+      take: take,
+      orderBy: { id: 'desc' }
+    }),
+    prisma.booking.count({
+      where: whereCondition
+    })
+  ]);
+
+  return { students, totalCount };
 };
 
 const getStudentById = async (id) => {
-  const query = "SELECT * FROM bookings WHERE id = $1";
-  const result = await pool.query(query, [id]);
-  return result.rows[0]; 
+  const student = await prisma.booking.findUnique({
+    where: { id: parseInt(id) }
+  });
+  return student;
 };
 
 const getStudentByEmail = async (email) => {
-  const query = "SELECT id from bookings WHERE email = $1";
-  const result = await pool.query(query, [email]);
-  return result.rows[0];
+  const student = await prisma.booking.findFirst({
+    where: { email },
+    select: { id: true }
+  });
+  return student;
 };
 
-const createStudent = async (data) => {
-  const { name, number, email, adress, centre, grade } = data;
-  const query = "INSERT INTO bookings (full_name, phone_number, email, address, center_name, grade_level) VALUES ($1, $2, $3, $4, $5, $6)";
-  const values = [name, number, email, adress, centre, grade];
-  const result = await pool.query(query, values);
-  return result;
+const createStudent = async (studentData) => {
+  const newStudent = await prisma.booking.create({
+    data: {
+      full_name: studentData.name,
+      phone_number: studentData.number, 
+      email: studentData.email,
+      address: studentData.adress,
+      center_name: studentData.centre,
+      grade_level: studentData.grade
+    }
+  });
+  return newStudent;
 };
 
 const deleteStudent = async (id) => {
-  const query = "DELETE FROM bookings WHERE id = $1";
-  const result = await pool.query(query, [id]);
-  return result;
+  const deletedStudent = await prisma.booking.delete({
+    where: { id: parseInt(id) }
+  });
+  return deletedStudent;
 };
 
 const checkEmailForOtherStudent = async (email, id) => {
-  const query = "SELECT id FROM bookings WHERE email = $1 AND id != $2";
-  const result = await pool.query(query, [email, id]);
-  return result.rows[0];
+  const existingStudent = await prisma.booking.findFirst({
+    where: {
+      email: email,
+      id: {
+        not: parseInt(id)
+      }
+    }
+  });
+  
+  return existingStudent !== null; 
 };
 
-const updateStudent = async (id, data) => {
-  const { name, email } = data;
-  const query = 'UPDATE bookings SET full_name = COALESCE($1, full_name), email = COALESCE($2, email) WHERE id = $3';
-  const result = await pool.query(query, [name, email, id]);
-  return result;
+const updateStudent = async (id, studentData) => {
+  const updatedStudent = await prisma.booking.update({
+    where: { id: parseInt(id) },
+    data: {
+      full_name: studentData.name, 
+      email: studentData.email
+    }
+  });
+  return updatedStudent;
 };
 
 module.exports = {

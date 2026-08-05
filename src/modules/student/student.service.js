@@ -1,17 +1,29 @@
 const studentRepo = require('./student.repository');
 const redisClient = require('../../core/config/redis.client');
 
-const getAllStudents = async () => {
+const getAllStudents = async (page = 1, limit = 10, search = "") => {
   try {
-    const cachedUsers = await redisClient.get('students:all');
-    if (cachedUsers) {
-      return { success: true, status: 200, data: { users: JSON.parse(cachedUsers) } };
-    }
+    const pageNumber = Math.max(1, parseInt(page) || 1);
+    const limitNumber = Math.max(1, parseInt(limit) || 10);
+    const skip = (pageNumber - 1) * limitNumber;
+    const { students, totalCount } = await studentRepo.getAllStudents(skip, limitNumber, search);
+    const totalPages = Math.ceil(totalCount / limitNumber);
 
-    const users = await studentRepo.getAllStudents();
-    await redisClient.set('students:all', JSON.stringify(users), { EX: 3600 });
-
-    return { success: true, status: 200, data: { users } };
+    return {
+      success: true,
+      status: 200,
+      data: {
+        users: students,
+        pagination: {
+          totalCount,
+          totalPages,
+          currentPage: pageNumber,
+          limit: limitNumber,
+          hasNextPage: pageNumber < totalPages,
+          hasPreviousPage: pageNumber > 1
+        }
+      }
+    };
   } catch (err) {
     console.error(err);
     return { success: false, status: 500, message: "حدث خطأ في السيرفر" };
@@ -74,17 +86,25 @@ const editStudent = async (id, studentData) => {
     if (emailConflict) {
       return { success: false, status: 400, message: "هذا البريد الإلكتروني مستخدم بالفعل لطالب آخر" };
     }
+    await studentRepo.updateStudent(id, studentData);
+    
+    try {
+      if (typeof redisClient !== 'undefined') {
+        await redisClient.del(['students:all', `students:${id}`]);
+      }
+    } catch (redisErr) {
+      console.log("تخطي خطأ مسح الكاش من Redis");
+    }
 
-    const result = await studentRepo.updateStudent(id, studentData);
-    if (result.rowCount > 0) {
-      await redisClient.del(['students:all', `students:${id}`]);
-
-      return { success: true, status: 200, message: "تم تعديل بيانات الطالب بنجاح" };
-    } else {
+    return { success: true, status: 200, message: "تم تعديل بيانات الطالب بنجاح" };
+    
+  } catch (err) {
+    console.error("خطأ الباك إند في التعديل:", err);
+    
+    if (err.code === 'P2025') {
       return { success: false, status: 404, message: "الطالب غير موجود" };
     }
-  } catch (err) {
-    console.error("خطأ الباك إند:", err);
+    
     return { success: false, status: 500, message: "حدث خطأ في السيرفر أثناء التعديل" };
   }
 };
