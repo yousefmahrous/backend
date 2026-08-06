@@ -3,9 +3,10 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const authRoutes = require('./routes/v1/auth.routes');
-const studentRoutes = require('./routes/v1/auth.routes');
+const studentRoutes = require('./routes/v1/student.routes');
 const sessionMiddleware = require('./core/config/session.config');
 
+require('./core/email.worker');
 const app = express();
 app.set('trust proxy', 1);
 
@@ -39,7 +40,6 @@ app.use(cookieParser());
 app.use(sessionMiddleware);
 
 app.use('/api/v1', v1Router);
-
 
 app.use((err, req, res, next) => {
   console.error(' Server Error Log:', err.stack || err.message || err);

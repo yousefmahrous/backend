@@ -18,7 +18,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
   }
 });
 
-router.post('/login',  async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const validatedData = loginSchema.parse(req.body);
     const user = await service.login(validatedData);

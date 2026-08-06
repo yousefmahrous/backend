@@ -39,6 +39,13 @@ const getStudentByEmail = async (email) => {
 };
 
 const createStudent = async (studentData) => {
+  let avatarUrl = null;
+
+  if (studentData.avatar_key) {
+    const endpointHost = process.env.B2_ENDPOINT.replace('https://', '');
+    avatarUrl = `https://${process.env.B2_BUCKET_NAME}.${endpointHost}/${studentData.avatar_key}`;
+  }
+
   const newStudent = await prisma.booking.create({
     data: {
       full_name: studentData.name,
@@ -46,9 +53,12 @@ const createStudent = async (studentData) => {
       email: studentData.email,
       address: studentData.adress,
       center_name: studentData.centre,
-      grade_level: studentData.grade
+      grade_level: studentData.grade,
+      avatar_key: studentData.avatar_key || null,
+      avatar_url: avatarUrl,
     }
   });
+
   return newStudent;
 };
 

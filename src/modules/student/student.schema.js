@@ -23,7 +23,9 @@ const bookingSchema = z.object({
 
   grade: z.enum(["الأول الثانوي", "الثاني الثانوي", "الثالث الثانوي"], {
     errorMap: () => ({ message: "يرجى اختيار الصف الدراسي من القائمة" })
-  })
+  }),
+
+  avatar_key: z.string().trim().nullable().optional()
 });
 
 

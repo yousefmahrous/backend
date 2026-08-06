@@ -59,7 +59,14 @@ const addStudent = async (studentData) => {
     }
 
     await studentRepo.createStudent(studentData);
-    await redisClient.del('students:all');
+    
+    try {
+      if (typeof redisClient !== 'undefined') {
+        await redisClient.del('students:all');
+      }
+    } catch (redisErr) {
+      console.log("تخطي خطأ مسح الكاش من Redis أثناء التسجيل");
+    }
 
     return { success: true, status: 201, message: "تم تسجيل الطالب بنجاح" };
   } catch (err) {

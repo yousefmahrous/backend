@@ -3,6 +3,7 @@ const repository = require('./auth.repository');
 const { sendWelcomeEmail, sendResetPasswordEmail } = require('../../core/services/email.service');
 const crypto = require('crypto');
 const redisClient = require('../../core/config/redis.client');
+const { addWelcomeEmailJob, addResetPasswordEmailJob } = require('../../core/email.queue');
 
 const signup = async (data) => {
   const existingUser = await repository.findUserByEmail(data.email);
@@ -15,7 +16,7 @@ const signup = async (data) => {
 
   const newUser = await repository.createUser(data.name, data.email, hashedPassword);
 
-  sendWelcomeEmail(data.email, data.name);
+  await addWelcomeEmailJob(data.email, data.name);
 
   return newUser;
 };
@@ -53,7 +54,7 @@ const forgotPassword = async (email) => {
   await repository.saveResetToken(user.id, resetToken, expiresAt);
 
   const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
-  await sendResetPasswordEmail(user.email, resetLink);
+  await addResetPasswordEmailJob(email, resetLink);
 };
 
 const resetPassword = async (token, newPassword) => {

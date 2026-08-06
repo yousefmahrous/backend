@@ -5,6 +5,7 @@ const { validateAdd, validateEdit } = require('../../core/middlewares/validation
 const authMiddleware = require('../../core/middlewares/auth.middleware');
 const requireAdmin = require('../../core/middlewares/admin.middleware');
 
+
 router.use(authMiddleware);
 
 router.get('/', async (req, res) => {
