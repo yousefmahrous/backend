@@ -1,0 +1,9 @@
+-- Rename "books" columns to proper book-domain names
+ALTER TABLE "books" RENAME COLUMN "full_name" TO "title";
+ALTER TABLE "books" RENAME COLUMN "phone_number" TO "isbn";
+ALTER TABLE "books" RENAME COLUMN "email" TO "publisher_email";
+ALTER TABLE "books" RENAME COLUMN "address" TO "description";
+ALTER TABLE "books" RENAME COLUMN "center_name" TO "publisher";
+ALTER TABLE "books" RENAME COLUMN "grade_level" TO "category";
+ALTER TABLE "books" RENAME COLUMN "avatar_url" TO "cover_url";
+ALTER TABLE "books" RENAME COLUMN "avatar_key" TO "cover_key";
