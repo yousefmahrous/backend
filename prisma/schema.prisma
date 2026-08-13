@@ -15,6 +15,8 @@ model User {
   reset_password_token   String?
   reset_password_expires DateTime?
 
+  cart                   Cart?
+
   @@map("users") 
 }
 
@@ -29,5 +31,31 @@ model Book {
   cover_url        String?
   cover_key        String?
 
+  cartItems        CartItem[]
+
   @@map("books")
+}
+
+model Cart {
+  id         Int        @id @default(autoincrement())
+  user_id    Int        @unique
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  items      CartItem[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         Int      @id @default(autoincrement())
+  cart_id    Int
+  cart       Cart     @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  book_id    Int
+  book       Book     @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  created_at DateTime @default(now())
+
+  @@unique([cart_id, book_id])
+  @@map("cart_items")
 }
