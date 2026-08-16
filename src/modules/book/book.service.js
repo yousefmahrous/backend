@@ -12,7 +12,8 @@ const serializeBook = (book) => {
     email: book.publisher_email,
     adress: book.description,
     centre: book.publisher,
-    grade: book.category,
+    category: book.category,
+    stock: book.stock,
     avatar_url: book.cover_url,
     avatar_key: book.cover_key,
   };

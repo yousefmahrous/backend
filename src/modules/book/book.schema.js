@@ -21,9 +21,13 @@ export const bookSchema = z.object({
     .trim()
     .min(2, "يرجى كتابة اسم دار النشر بشكل صحيح"),
 
-  grade: z.enum(["روايات", "علمي", "تاريخي", "أطفال"], {
+  category: z.enum(["روايات", "علمي", "تاريخي", "أطفال"], {
     errorMap: () => ({ message: "يرجى اختيار تصنيف الكتاب من القائمة" })
   }),
+
+  stock: z.coerce.number({ invalid_type_error: "الكمية لازم تكون رقم" })
+    .int("الكمية لازم تكون رقم صحيح")
+    .min(0, "الكمية متقدرش تكون سالبة"),
 
   avatar_key: z.string().trim().nullable().optional()
 });
@@ -31,4 +35,7 @@ export const bookSchema = z.object({
 export const editBookSchema = z.object({
   name: z.string().trim().min(3, "عنوان الكتاب لازم يكون 3 حروف على الأقل"),
   email: z.string().trim().email("صيغة البريد الإلكتروني غير صحيحة"),
+  stock: z.coerce.number({ invalid_type_error: "الكمية لازم تكون رقم" })
+    .int("الكمية لازم تكون رقم صحيح")
+    .min(0, "الكمية متقدرش تكون سالبة"),
 });

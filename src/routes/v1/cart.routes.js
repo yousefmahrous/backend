@@ -6,6 +6,13 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+router.use((req, res, next) => {
+  if (req.user.role === 'admin') {
+    return res.status(403).json({ success: false, message: 'العربية متاحة للعملاء فقط' });
+  }
+  next();
+});
+
 router.get('/', async (req, res) => {
   const { status, ...response } = await cartService.getCart(req.user.id);
   res.status(status).json(response);

@@ -52,7 +52,8 @@ export const createBook = async (bookData) => {
       publisher_email: bookData.email,
       description: bookData.adress,
       publisher: bookData.centre,
-      category: bookData.grade,
+      category: bookData.category,
+      stock: bookData.stock,
       cover_key: bookData.avatar_key || null,
       cover_url: coverUrl,
     }
@@ -86,7 +87,8 @@ export const updateBook = async (id, bookData) => {
     where: { id: parseInt(id) },
     data: {
       title: bookData.name,
-      publisher_email: bookData.email
+      publisher_email: bookData.email,
+      stock: bookData.stock
     }
   });
   return updatedBook;
