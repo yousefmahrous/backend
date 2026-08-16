@@ -16,6 +16,7 @@ model User {
   reset_password_expires DateTime?
 
   cart                   Cart?
+  favorites              Favorite[]
 
   @@map("users") 
 }
@@ -33,6 +34,7 @@ model Book {
   stock            Int     @default(0)
 
   cartItems        CartItem[]
+  favorites        Favorite[]
 
   @@map("books")
 }
@@ -59,4 +61,16 @@ model CartItem {
 
   @@unique([cart_id, book_id])
   @@map("cart_items")
+}
+
+model Favorite {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  book_id    Int
+  book       Book     @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+
+  @@unique([user_id, book_id])
+  @@map("favorites")
 }
