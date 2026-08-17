@@ -46,3 +46,18 @@ export const forgotPasswordLimiter = rateLimit({
     message: 'لقد وصلت للحد الأقصى لمحاولات تغيير كلمة المرور يرجى المحاولة لاحقا'
   }
 });
+
+export const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:contact:',
+  }),
+  message: {
+    success: false,
+    message: 'لقد أرسلت رسايل كتير، حاول تاني بعد شوية'
+  }
+});

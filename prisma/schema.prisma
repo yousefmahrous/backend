@@ -74,3 +74,14 @@ model Favorite {
   @@unique([user_id, book_id])
   @@map("favorites")
 }
+
+model ContactMessage {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String
+  subject    String
+  message    String
+  created_at DateTime @default(now())
+
+  @@map("contact_messages")
+}

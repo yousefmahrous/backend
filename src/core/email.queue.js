@@ -21,3 +21,7 @@ export const addWelcomeEmailJob = async (email, name) => {
 export const addResetPasswordEmailJob = async (email, resetLink) => {
   await emailQueue.add('reset-password-email', { email, resetLink });
 };
+
+export const addContactNotificationEmailJob = async ({ name, email, subject, message }) => {
+  await emailQueue.add('contact-notification-email', { name, email, subject, message });
+};

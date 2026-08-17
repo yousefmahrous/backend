@@ -48,3 +48,32 @@ export const sendResetPasswordEmail = async (email, resetLink) => {
     console.error('فشل إرسال إيميل إعادة التعيين:', error);
   }
 };
+
+export const sendContactNotificationEmail = async ({ name, email, subject, message }) => {
+  try {
+    const adminEmail = process.env.CONTACT_RECEIVER_EMAIL;
+    if (!adminEmail) {
+      console.error('CONTACT_RECEIVER_EMAIL غير معرّف في متغيرات البيئة');
+      return;
+    }
+
+    await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: [adminEmail],
+      replyTo: email,
+      subject: `[تواصل معنا] ${subject}`,
+      html: `
+        <div style="direction: rtl; text-align: right; font-family: sans-serif;">
+          <h2>رسالة جديدة من صفحة تواصل معنا</h2>
+          <p><strong>الاسم:</strong> ${name}</p>
+          <p><strong>الإيميل:</strong> ${email}</p>
+          <p><strong>الموضوع:</strong> ${subject}</p>
+          <p><strong>الرسالة:</strong></p>
+          <p style="white-space: pre-wrap;">${message}</p>
+        </div>
+      `
+    });
+  } catch (error) {
+    console.error('فشل إرسال إيميل التواصل:', error);
+  }
+};
