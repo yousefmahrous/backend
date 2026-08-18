@@ -17,6 +17,12 @@ router.post('/', authMiddleware, requireAdmin, validateAdd, async (req, res) => 
   res.status(status).json(response);
 });
 
+router.get('/popular', async (req, res) => {
+  const { limit } = req.query;
+  const { status, ...response } = await bookService.getPopularBooks(limit);
+  res.status(status).json(response);
+});
+
 router.get('/:id', async (req, res) => {
   const { status, ...response } = await bookService.getBookById(req.params.id);
   res.status(status).json(response);

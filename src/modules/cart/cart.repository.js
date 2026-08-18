@@ -25,7 +25,11 @@ export const reserveAndAddItem = async (cartId, bookId, quantity = 1) => {
 
     await tx.book.update({
       where: { id: bookId },
-      data: { stock: { decrement: quantity } }
+      data: {
+        stock: { decrement: quantity },
+        cart_adds_count: { increment: 1 },
+        popularity_score: { increment: 2 }
+      }
     });
 
     const item = await tx.cartItem.upsert({

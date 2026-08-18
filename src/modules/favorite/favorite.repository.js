@@ -15,9 +15,21 @@ export const findFavorite = async (userId, bookId) => {
 };
 
 export const addFavorite = async (userId, bookId) => {
-  return prisma.favorite.create({
-    data: { user_id: userId, book_id: bookId },
-    include: { book: true }
+  return prisma.$transaction(async (tx) => {
+    const favorite = await tx.favorite.create({
+      data: { user_id: userId, book_id: bookId },
+      include: { book: true }
+    });
+
+    await tx.book.update({
+      where: { id: bookId },
+      data: {
+        favorites_count: { increment: 1 },
+        popularity_score: { increment: 1 }
+      }
+    });
+
+    return favorite;
   });
 };
 

@@ -32,6 +32,9 @@ model Book {
   cover_url        String?
   cover_key        String?
   stock            Int     @default(0)
+  favorites_count  Int     @default(0)
+  cart_adds_count  Int     @default(0)
+  popularity_score Int     @default(0)
 
   cartItems        CartItem[]
   favorites        Favorite[]
@@ -85,3 +88,4 @@ model ContactMessage {
 
   @@map("contact_messages")
 }
+

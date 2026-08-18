@@ -136,3 +136,19 @@ export const editBook = async (id, bookData) => {
     return { success: false, status: 500, message: "حدث خطأ في السيرفر أثناء التعديل" };
   }
 };
+
+export const getPopularBooks = async (limit = 10) => {
+  try {
+    const limitNumber = Math.max(1, Math.min(50, parseInt(limit) || 10));
+    const books = await bookRepo.getPopularBooks(limitNumber);
+
+    return {
+      success: true,
+      status: 200,
+      data: { users: books.map(serializeBook) }
+    };
+  } catch (err) {
+    console.error(err);
+    return { success: false, status: 500, message: "حدث خطأ في السيرفر" };
+  }
+};

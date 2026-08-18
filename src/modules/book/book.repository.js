@@ -93,3 +93,10 @@ export const updateBook = async (id, bookData) => {
   });
   return updatedBook;
 };
+
+export const getPopularBooks = async (limit = 10) => {
+  return prisma.book.findMany({
+    orderBy: { popularity_score: 'desc' },
+    take: limit
+  });
+};
