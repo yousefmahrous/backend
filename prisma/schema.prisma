@@ -17,6 +17,7 @@ model User {
 
   cart                   Cart?
   favorites              Favorite[]
+  reviews                Review[]
 
   @@map("users") 
 }
@@ -35,9 +36,12 @@ model Book {
   favorites_count  Int     @default(0)
   cart_adds_count  Int     @default(0)
   popularity_score Int     @default(0)
+  rating_average   Float   @default(0)
+  reviews_count    Int     @default(0)
 
   cartItems        CartItem[]
   favorites        Favorite[]
+  reviews          Review[]
 
   @@map("books")
 }
@@ -76,6 +80,21 @@ model Favorite {
 
   @@unique([user_id, book_id])
   @@map("favorites")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  book_id    Int
+  book       Book     @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([user_id, book_id])
+  @@map("reviews")
 }
 
 model ContactMessage {

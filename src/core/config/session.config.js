@@ -8,6 +8,8 @@ const redisStore = new RedisStore({
   ttl: 86400
 });
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const sessionMiddleware = session({
   store: redisStore,
   secret: process.env.SESSION_SECRET,
@@ -16,9 +18,9 @@ const sessionMiddleware = session({
   name: 'sessionId',
   cookie: {
     httpOnly: true,
-    secure: true,
+    secure: isProduction,
     maxAge: 1000 * 60 * 60 * 24,
-    sameSite: 'none'
+    sameSite: isProduction ? 'none' : 'lax'
   }
 });
 
