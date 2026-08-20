@@ -11,7 +11,8 @@ const serializeCartItem = (item) => ({
     number: item.book.isbn,
     category: item.book.category,
     avatar_url: item.book.cover_url,
-    stock: item.book.stock
+    stock: item.book.stock,
+    price: item.book.price
   }
 });
 

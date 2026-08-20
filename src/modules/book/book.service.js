@@ -13,6 +13,7 @@ const serializeBook = (book) => {
     adress: book.description,
     centre: book.publisher,
     category: book.category,
+    price: book.price,
     stock: book.stock,
     avatar_url: book.cover_url,
     avatar_key: book.cover_key,

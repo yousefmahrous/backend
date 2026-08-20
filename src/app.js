@@ -6,6 +6,7 @@ import http from 'http';
 import sessionMiddleware from './core/config/session.config.js';
 import { init } from './core/config/socket.config.js';
 import v1Router from './routes/v1/index.js';
+import * as paymentService from './modules/payment/payment.service.js';
 import './core/email.worker.js';
 
 const app = express();
@@ -31,6 +32,17 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   })
+);
+
+
+app.post(
+  '/api/v1/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    const { status, ...response } = await paymentService.handleWebhookEvent(req.body, signature);
+    res.status(status).json(response);
+  }
 );
 
 app.use(express.json());

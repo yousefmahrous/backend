@@ -18,6 +18,7 @@ model User {
   cart                   Cart?
   favorites              Favorite[]
   reviews                Review[]
+  orders                 Order[]
 
   @@map("users") 
 }
@@ -32,6 +33,7 @@ model Book {
   category         String
   cover_url        String?
   cover_key        String?
+  price            Int     @default(0)
   stock            Int     @default(0)
   favorites_count  Int     @default(0)
   cart_adds_count  Int     @default(0)
@@ -42,8 +44,36 @@ model Book {
   cartItems        CartItem[]
   favorites        Favorite[]
   reviews          Review[]
+  orderItems       OrderItem[]
 
   @@map("books")
+}
+
+model Order {
+  id                 Int         @id @default(autoincrement())
+  user_id            Int
+  user               User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  status             String      @default("pending")
+  stripe_session_id  String?     @unique
+  total_amount       Int
+  currency           String      @default("egp")
+  items              OrderItem[]
+  created_at         DateTime    @default(now())
+  updated_at         DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order_id   Int
+  order      Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  book_id    Int
+  book       Book     @relation(fields: [book_id], references: [id])
+  quantity   Int
+  unit_price Int
+
+  @@map("order_items")
 }
 
 model Cart {
@@ -107,4 +137,3 @@ model ContactMessage {
 
   @@map("contact_messages")
 }
-
