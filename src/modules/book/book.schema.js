@@ -29,6 +29,10 @@ export const bookSchema = z.object({
     .int("الكمية لازم تكون رقم صحيح")
     .min(0, "الكمية متقدرش تكون سالبة"),
 
+  price: z.coerce.number({ invalid_type_error: "السعر لازم يكون رقم" })
+    .min(0, "السعر متقدرش يكون سالب")
+    .transform((val) => Math.round(val * 100)),
+
   avatar_key: z.string().trim().nullable().optional()
 });
 
@@ -38,4 +42,7 @@ export const editBookSchema = z.object({
   stock: z.coerce.number({ invalid_type_error: "الكمية لازم تكون رقم" })
     .int("الكمية لازم تكون رقم صحيح")
     .min(0, "الكمية متقدرش تكون سالبة"),
+  price: z.coerce.number({ invalid_type_error: "السعر لازم يكون رقم" })
+    .min(0, "السعر متقدرش يكون سالب")
+    .transform((val) => Math.round(val * 100)),
 });

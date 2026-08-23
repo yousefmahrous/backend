@@ -54,6 +54,7 @@ export const createBook = async (bookData) => {
       publisher: bookData.centre,
       category: bookData.category,
       stock: bookData.stock,
+      price: bookData.price,
       cover_key: bookData.avatar_key || null,
       cover_url: coverUrl,
     }
@@ -88,7 +89,8 @@ export const updateBook = async (id, bookData) => {
     data: {
       title: bookData.name,
       publisher_email: bookData.email,
-      stock: bookData.stock
+      stock: bookData.stock,
+      price: bookData.price
     }
   });
   return updatedBook;

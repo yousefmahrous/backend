@@ -18,19 +18,18 @@ export const getOrCreateCart = async (userId) => {
 
 export const reserveAndAddItem = async (cartId, bookId, quantity = 1) => {
   return prisma.$transaction(async (tx) => {
-    const book = await tx.book.findUnique({ where: { id: bookId } });
-    if (!book || book.stock < quantity) {
-      throw new Error('OUT_OF_STOCK');
-    }
-
-    await tx.book.update({
-      where: { id: bookId },
+    const result = await tx.book.updateMany({
+      where: { id: bookId, stock: { gte: quantity } },
       data: {
         stock: { decrement: quantity },
         cart_adds_count: { increment: 1 },
         popularity_score: { increment: 2 }
       }
     });
+
+    if (result.count === 0) {
+      throw new Error('OUT_OF_STOCK');
+    }
 
     const item = await tx.cartItem.upsert({
       where: { cart_id_book_id: { cart_id: cartId, book_id: bookId } },
@@ -45,19 +44,24 @@ export const reserveAndAddItem = async (cartId, bookId, quantity = 1) => {
 
 export const reserveAndUpdateQuantity = async (itemId, newQuantity) => {
   return prisma.$transaction(async (tx) => {
-    const item = await tx.cartItem.findUnique({ where: { id: itemId }, include: { book: true } });
+    const item = await tx.cartItem.findUnique({ where: { id: itemId } });
     if (!item) throw new Error('ITEM_NOT_FOUND');
 
     const diff = newQuantity - item.quantity;
 
-    if (diff > 0 && item.book.stock < diff) {
-      throw new Error('OUT_OF_STOCK');
-    }
+    if (diff > 0) {
+      const result = await tx.book.updateMany({
+        where: { id: item.book_id, stock: { gte: diff } },
+        data: { stock: { decrement: diff } }
+      });
 
-    if (diff !== 0) {
+      if (result.count === 0) {
+        throw new Error('OUT_OF_STOCK');
+      }
+    } else if (diff < 0) {
       await tx.book.update({
         where: { id: item.book_id },
-        data: { stock: { decrement: diff } }
+        data: { stock: { increment: -diff } }
       });
     }
 

@@ -1,4 +1,5 @@
 import * as cartRepo from './cart.repository.js';
+import * as paymentService from '../payment/payment.service.js';
 import { getIO } from '../../core/config/socket.config.js';
 import redisClient from '../../core/config/redis.client.js';
 
@@ -40,6 +41,7 @@ const invalidateBookCache = async (bookId) => {
 
 export const getCart = async (userId) => {
   try {
+    await paymentService.expireStalePendingOrders(userId);
     const cart = await cartRepo.getOrCreateCart(userId);
     return { success: true, status: 200, data: serializeCart(cart) };
   } catch (err) {

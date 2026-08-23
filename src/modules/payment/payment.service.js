@@ -1,6 +1,51 @@
 import stripe from '../../core/config/stripe.config.js';
 import * as cartRepo from '../cart/cart.repository.js';
 import * as paymentRepo from './payment.repository.js';
+import redisClient from '../../core/config/redis.client.js';
+import { getIO } from '../../core/config/socket.config.js';
+
+const PENDING_ORDER_EXPIRY_MINUTES = 30;
+
+const invalidateBookCache = async (bookId) => {
+  try {
+    await redisClient.del(['books:all', `books:${bookId}`]);
+  } catch (redisErr) {
+  }
+};
+
+const emitBooksUpdated = () => {
+  try {
+    getIO().emit('books_updated');
+  } catch (err) {
+  }
+};
+
+export const expireStalePendingOrders = async (userId) => {
+  try {
+    const stale = await paymentRepo.findExpiredPendingOrdersByUser(
+      userId,
+      PENDING_ORDER_EXPIRY_MINUTES
+    );
+
+    for (const order of stale) {
+      if (order.stripe_session_id) {
+        try {
+          await stripe.checkout.sessions.expire(order.stripe_session_id);
+        } catch (err) {
+        }
+      }
+      const failedOrder = await paymentRepo.markOrderFailed(order.id);
+
+      if (failedOrder?.items?.length) {
+        for (const item of failedOrder.items) {
+          await invalidateBookCache(item.book_id);
+        }
+        emitBooksUpdated();
+      }
+    }
+  } catch (err) {
+  }
+};
 
 export const createCheckoutSession = async (userId) => {
   try {
@@ -8,6 +53,17 @@ export const createCheckoutSession = async (userId) => {
 
     if (!cart.items || cart.items.length === 0) {
       return { success: false, status: 400, message: 'العربية فاضية، مينفعش تكمل دفع' };
+    }
+
+    const existingPending = await paymentRepo.findPendingOrderByUser(userId);
+    if (existingPending) {
+      if (existingPending.stripe_session_id) {
+        try {
+          await stripe.checkout.sessions.expire(existingPending.stripe_session_id);
+        } catch (err) {
+        }
+      }
+      await paymentRepo.cancelOrder(existingPending.id);
     }
 
     const order = await paymentRepo.createPendingOrderFromCart(userId, cart);
@@ -63,7 +119,14 @@ export const handleWebhookEvent = async (rawBody, signature) => {
     case 'checkout.session.expired': {
       const session = event.data.object;
       const orderId = parseInt(session.metadata.order_id);
-      await paymentRepo.markOrderFailed(orderId);
+      const failedOrder = await paymentRepo.markOrderFailed(orderId);
+
+      if (failedOrder?.items?.length) {
+        for (const item of failedOrder.items) {
+          await invalidateBookCache(item.book_id);
+        }
+        emitBooksUpdated();
+      }
       break;
     }
 

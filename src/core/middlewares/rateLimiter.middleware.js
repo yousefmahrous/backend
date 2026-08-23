@@ -61,3 +61,19 @@ export const contactLimiter = rateLimit({
     message: 'لقد أرسلت رسايل كتير، حاول تاني بعد شوية'
   }
 });
+
+export const checkoutLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id?.toString() ?? req.ip,
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:checkout:',
+  }),
+  message: {
+    success: false,
+    message: 'لقد حاولت الدفع مرات كتيرة. برجاء الانتظار شوية والمحاولة تاني.'
+  }
+});

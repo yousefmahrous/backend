@@ -73,11 +73,6 @@ export const getBookById = async (id) => {
 
 export const addBook = async (bookData) => {
   try {
-    const emailExists = await bookRepo.getBookByEmail(bookData.email);
-    if (emailExists) {
-      return { success: false, status: 400, errors: { email: ["الايميل مكرر"] } };
-    }
-
     await bookRepo.createBook(bookData);
 
     try {
@@ -111,10 +106,6 @@ export const deleteBook = async (id) => {
 
 export const editBook = async (id, bookData) => {
   try {
-    const emailConflict = await bookRepo.checkEmailForOtherBook(bookData.email, id);
-    if (emailConflict) {
-      return { success: false, status: 400, message: "هذا البريد الإلكتروني مستخدم بالفعل لكتاب آخر" };
-    }
     await bookRepo.updateBook(id, bookData);
 
     try {
