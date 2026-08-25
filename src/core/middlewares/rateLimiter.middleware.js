@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import redisClient from '../config/redis.client.js';
 
@@ -67,7 +67,7 @@ export const checkoutLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.id?.toString() ?? req.ip,
+  keyGenerator: (req) => req.user?.id?.toString() ?? ipKeyGenerator(req.ip),
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:checkout:',

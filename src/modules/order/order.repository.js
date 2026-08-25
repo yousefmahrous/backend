@@ -22,3 +22,21 @@ export const findOrdersByUser = async (userId) => {
     include: { items: { include: { book: true } } }
   });
 };
+
+export const findAllOrders = async (skip, limit, status) => {
+  const where = status ? { status } : {};
+  const [orders, totalCount] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit,
+      include: {
+        items: { include: { book: true } },
+        user: { select: { id: true, name: true, email: true } }
+      }
+    }),
+    prisma.order.count({ where })
+  ]);
+  return { orders, totalCount };
+};
