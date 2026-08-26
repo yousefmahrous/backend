@@ -1,6 +1,7 @@
 import stripe from '../../core/config/stripe.config.js';
 import * as cartRepo from '../cart/cart.repository.js';
 import * as paymentRepo from './payment.repository.js';
+import * as refundRepo from '../refund/refund.repository.js';
 import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
 
@@ -112,7 +113,7 @@ export const handleWebhookEvent = async (rawBody, signature) => {
     case 'checkout.session.completed': {
       const session = event.data.object;
       const orderId = parseInt(session.metadata.order_id);
-      await paymentRepo.markOrderPaid(orderId);
+      await paymentRepo.markOrderPaid(orderId, session.payment_intent);
       break;
     }
 
@@ -126,6 +127,16 @@ export const handleWebhookEvent = async (rawBody, signature) => {
           await invalidateBookCache(item.book_id);
         }
         emitBooksUpdated();
+      }
+      break;
+    }
+    
+    case 'charge.refunded': {
+      const charge = event.data.object;
+      const paymentIntentId = charge.payment_intent;
+      if (paymentIntentId) {
+        const order = await refundRepo.markOrderRefundedFromWebhook(paymentIntentId);
+        if (order) emitBooksUpdated();
       }
       break;
     }

@@ -19,6 +19,7 @@ model User {
   favorites              Favorite[]
   reviews                Review[]
   orders                 Order[]
+  refundRequests         RefundRequest[]
 
   @@map("users") 
 }
@@ -55,13 +56,32 @@ model Order {
   user               User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
   status             String      @default("pending")
   stripe_session_id  String?     @unique
+  payment_intent_id  String?     @unique
+  paid_at            DateTime?
   total_amount       Int
   currency           String      @default("egp")
   items              OrderItem[]
+  refundRequests     RefundRequest[]
   created_at         DateTime    @default(now())
   updated_at         DateTime    @updatedAt
 
   @@map("orders")
+}
+
+model RefundRequest {
+  id          Int       @id @default(autoincrement())
+  order_id    Int
+  order       Order     @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  user_id     Int
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  reason      String
+  status      String    @default("pending")
+  admin_note  String?
+  created_at  DateTime  @default(now())
+  reviewed_at DateTime?
+  updated_at  DateTime  @updatedAt
+
+  @@map("refund_requests")
 }
 
 model OrderItem {

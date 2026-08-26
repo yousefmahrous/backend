@@ -62,11 +62,11 @@ export const findOrderBySessionId = async (sessionId) => {
   });
 };
 
-export const markOrderPaid = async (orderId) => {
+export const markOrderPaid = async (orderId, paymentIntentId) => {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.update({
       where: { id: orderId },
-      data: { status: 'paid' },
+      data: { status: 'paid', payment_intent_id: paymentIntentId, paid_at: new Date() },
       include: { items: true, user: { include: { cart: true } } }
     });
 
