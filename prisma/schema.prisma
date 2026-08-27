@@ -14,6 +14,9 @@ model User {
   role                   String    @default("customer")
   reset_password_token   String?
   reset_password_expires DateTime?
+  is_email_verified          Boolean   @default(false)
+  verification_token         String?
+  verification_token_expires DateTime?
 
   cart                   Cart?
   favorites              Favorite[]

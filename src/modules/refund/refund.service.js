@@ -1,6 +1,7 @@
 import stripe from '../../core/config/stripe.config.js';
 import * as refundRepo from './refund.repository.js';
 import { getIO } from '../../core/config/socket.config.js';
+import { addRefundStatusEmailJob } from '../../core/email.queue.js';
 
 const RETURN_WINDOW_DAYS = 14;
 
@@ -8,6 +9,16 @@ const emitBooksUpdated = () => {
   try {
     getIO().emit('books_updated');
   } catch (err) {
+  }
+};
+
+const queueRefundStatusEmail = async (request) => {
+  if (request?.user?.email) {
+    try {
+      await addRefundStatusEmailJob(request.user.email, request.user.name, request);
+    } catch (err) {
+      console.error('فشل جدولة إيميل حالة الاسترجاع:', err.message);
+    }
   }
 };
 
@@ -150,6 +161,7 @@ export const approveRefundRequest = async (id) => {
     }
 
     const request = await refundRepo.approveRefundRequest(id);
+    await queueRefundStatusEmail(request);
 
     return {
       success: true,
@@ -174,6 +186,7 @@ export const rejectRefundRequest = async (id, adminNote) => {
     }
 
     const request = await refundRepo.rejectRefundRequest(id, adminNote);
+    await queueRefundStatusEmail(request);
 
     return {
       success: true,
@@ -198,6 +211,7 @@ export const cancelAwaitingReturn = async (id, adminNote) => {
     }
 
     const request = await refundRepo.cancelAwaitingReturn(id, adminNote);
+    await queueRefundStatusEmail(request);
 
     return {
       success: true,
@@ -245,6 +259,7 @@ export const completeRefund = async (id) => {
 
     const result = await refundRepo.completeRefund(id);
     emitBooksUpdated();
+    await queueRefundStatusEmail(result);
 
     return {
       success: true,

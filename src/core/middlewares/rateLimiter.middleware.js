@@ -47,6 +47,21 @@ export const forgotPasswordLimiter = rateLimit({
   }
 });
 
+export const resendVerificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:resend-verify:',
+  }),
+  message: {
+    success: false,
+    message: 'لقد طلبت رابط التأكيد مرات كتيرة. برجاء الانتظار شوية والمحاولة تاني.'
+  }
+});
+
 export const contactLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,

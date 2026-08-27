@@ -67,7 +67,10 @@ export const markOrderPaid = async (orderId, paymentIntentId) => {
     const order = await tx.order.update({
       where: { id: orderId },
       data: { status: 'paid', payment_intent_id: paymentIntentId, paid_at: new Date() },
-      include: { items: true, user: { include: { cart: true } } }
+      include: {
+        items: { include: { book: true } },
+        user: { include: { cart: true } }
+      }
     });
 
     if (order.user?.cart) {
@@ -92,7 +95,10 @@ export const markOrderFailed = async (orderId) => {
     const updated = await tx.order.update({
       where: { id: orderId },
       data: { status: 'failed' },
-      include: { items: true }
+      include: {
+        items: { include: { book: true } },
+        user: { select: { id: true, name: true, email: true } }
+      }
     });
 
     const cart = await tx.cart.findUnique({ where: { user_id: updated.user_id } });

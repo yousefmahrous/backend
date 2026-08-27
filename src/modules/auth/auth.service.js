@@ -3,7 +3,23 @@ import * as repository from './auth.repository.js';
 import { sendWelcomeEmail, sendResetPasswordEmail } from '../../core/services/email.service.js';
 import crypto from 'crypto';
 import redisClient from '../../core/config/redis.client.js';
-import { addWelcomeEmailJob, addResetPasswordEmailJob } from '../../core/email.queue.js';
+import {
+  addWelcomeEmailJob,
+  addResetPasswordEmailJob,
+  addVerificationEmailJob
+} from '../../core/email.queue.js';
+
+const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+const issueVerificationToken = async (userId, email, name) => {
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+
+  await repository.saveVerificationToken(userId, verificationToken, expiresAt);
+
+  const verifyLink = `${process.env.CLIENT_URL_DEV_4}/verify-email?token=${verificationToken}`;
+  await addVerificationEmailJob(email, name, verifyLink);
+};
 
 export const signup = async (data) => {
   const existingUser = await repository.findUserByEmail(data.email);
@@ -16,7 +32,7 @@ export const signup = async (data) => {
 
   const newUser = await repository.createUser(data.name, data.email, hashedPassword);
 
-  await addWelcomeEmailJob(data.email, data.name);
+  await issueVerificationToken(newUser.id, data.email, data.name);
 
   return newUser;
 };
@@ -32,6 +48,12 @@ export const login = async (data) => {
     throw new Error('الإيميل أو كلمة المرور غير صحيحة');
   }
 
+  if (!user.is_email_verified) {
+    const error = new Error('لازم تأكد بريدك الإلكتروني الأول قبل تسجيل الدخول');
+    error.code = 'EMAIL_NOT_VERIFIED';
+    throw error;
+  }
+
   const normalizedRole = user.role ? user.role.toLowerCase() : 'customer';
 
   return {
@@ -40,6 +62,31 @@ export const login = async (data) => {
     email: user.email,
     role: normalizedRole
   };
+};
+
+export const verifyEmail = async (token) => {
+  const user = await repository.findUserByVerificationToken(token);
+  if (!user) {
+    throw new Error('رابط التأكيد غير صالح أو انتهت صلاحيته');
+  }
+
+  if (user.is_email_verified) {
+    return { name: user.name, email: user.email };
+  }
+
+  await repository.markEmailAsVerified(user.id);
+  await addWelcomeEmailJob(user.email, user.name);
+
+  return { name: user.name, email: user.email };
+};
+
+export const resendVerification = async (email) => {
+  const user = await repository.findUserByEmail(email);
+  if (!user || user.is_email_verified) {
+    return;
+  }
+
+  await issueVerificationToken(user.id, user.email, user.name);
 };
 
 export const forgotPassword = async (email) => {

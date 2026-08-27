@@ -71,3 +71,36 @@ export const updatePassword = async (userId, hashedPassword) => {
     }
   });
 };
+
+export const saveVerificationToken = async (userId, token, expiresAt) => {
+  await prisma.user.update({
+    where: { id: parseInt(userId) },
+    data: {
+      verification_token: token,
+      verification_token_expires: expiresAt
+    }
+  });
+};
+
+export const findUserByVerificationToken = async (token) => {
+  const user = await prisma.user.findFirst({
+    where: {
+      verification_token: token,
+      verification_token_expires: {
+        gt: new Date()
+      }
+    }
+  });
+  return user;
+};
+
+export const markEmailAsVerified = async (userId) => {
+  await prisma.user.update({
+    where: { id: parseInt(userId) },
+    data: {
+      is_email_verified: true,
+      verification_token: null,
+      verification_token_expires: null
+    }
+  });
+};

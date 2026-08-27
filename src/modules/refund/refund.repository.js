@@ -84,7 +84,10 @@ export const approveRefundRequest = async (id) => {
     const request = await tx.refundRequest.update({
       where: { id },
       data: { status: 'awaiting_return', reviewed_at: new Date() },
-      include: { order: true }
+      include: {
+        order: { include: { items: { include: { book: true } } } },
+        user: { select: { id: true, name: true, email: true } }
+      }
     });
 
     await tx.order.update({
@@ -101,7 +104,10 @@ export const rejectRefundRequest = async (id, adminNote) => {
     const request = await tx.refundRequest.update({
       where: { id },
       data: { status: 'rejected', admin_note: adminNote ?? null, reviewed_at: new Date() },
-      include: { order: true }
+      include: {
+        order: { include: { items: { include: { book: true } } } },
+        user: { select: { id: true, name: true, email: true } }
+      }
     });
 
     await tx.order.update({
@@ -118,7 +124,10 @@ export const cancelAwaitingReturn = async (id, adminNote) => {
     const request = await tx.refundRequest.update({
       where: { id },
       data: { status: 'cancelled', admin_note: adminNote ?? null, reviewed_at: new Date() },
-      include: { order: true }
+      include: {
+        order: { include: { items: { include: { book: true } } } },
+        user: { select: { id: true, name: true, email: true } }
+      }
     });
 
     await tx.order.update({
@@ -134,7 +143,10 @@ export const completeRefund = async (id) => {
   const result = await prisma.$transaction(async (tx) => {
     const request = await tx.refundRequest.findUnique({
       where: { id },
-      include: { order: { include: { items: true } } }
+      include: {
+        order: { include: { items: { include: { book: true } } } },
+        user: { select: { id: true, name: true, email: true } }
+      }
     });
 
     if (!request) return null;
@@ -156,7 +168,7 @@ export const completeRefund = async (id) => {
       });
     }
 
-    return { ...updatedRequest, order: request.order };
+    return { ...updatedRequest, order: request.order, user: request.user };
   });
 
   if (result?.order?.items?.length) {

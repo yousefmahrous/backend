@@ -2,7 +2,12 @@ import express from 'express';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import * as service from '../../modules/auth/auth.service.js';
 import { signupSchema, loginSchema } from '../../modules/auth/auth.schema.js';
-import { loginLimiter, signupLimiter, forgotPasswordLimiter } from '../../core/middlewares/rateLimiter.middleware.js';
+import {
+  loginLimiter,
+  signupLimiter,
+  forgotPasswordLimiter,
+  resendVerificationLimiter
+} from '../../core/middlewares/rateLimiter.middleware.js';
 
 const router = express.Router();
 
@@ -10,7 +15,10 @@ router.post('/signup', signupLimiter, async (req, res) => {
   try {
     const validatedData = signupSchema.parse(req.body);
     const newUser = await service.signup(validatedData);
-    res.status(201).json({ message: 'تم إنشاء الحساب بنجاح', user: newUser });
+    res.status(201).json({
+      message: 'تم إنشاء الحساب بنجاح، برجاء مراجعة بريدك الإلكتروني لتأكيد حسابك',
+      user: newUser
+    });
   } catch (error) {
     if (error.name === 'ZodError') {
       return res.status(400).json({ errors: error.errors });
@@ -19,7 +27,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const validatedData = loginSchema.parse(req.body);
     const user = await service.login(validatedData);
@@ -40,6 +48,34 @@ router.post('/login', async (req, res) => {
     if (error.name === 'ZodError') {
       return res.status(400).json({ errors: error.errors });
     }
+    if (error.code === 'EMAIL_NOT_VERIFIED') {
+      return res.status(403).json({ message: error.message, code: error.code });
+    }
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: 'رابط التأكيد غير صالح' });
+    }
+    const user = await service.verifyEmail(token);
+    res.status(200).json({ message: 'تم تأكيد بريدك الإلكتروني بنجاح، يمكنك تسجيل الدخول الآن', user });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.post('/resend-verification', resendVerificationLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    await service.resendVerification(email);
+    res.status(200).json({
+      message: 'لو الإيميل ده مسجل عندنا وغير مفعّل، هيوصلك رابط تأكيد جديد خلال دقايق'
+    });
+  } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });

@@ -4,6 +4,7 @@ import * as paymentRepo from './payment.repository.js';
 import * as refundRepo from '../refund/refund.repository.js';
 import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
+import { addPaymentSuccessEmailJob, addPaymentFailedEmailJob } from '../../core/email.queue.js';
 
 const PENDING_ORDER_EXPIRY_MINUTES = 30;
 
@@ -18,6 +19,15 @@ const emitBooksUpdated = () => {
   try {
     getIO().emit('books_updated');
   } catch (err) {
+  }
+};
+
+const queuePaymentFailedEmail = async (order) => {
+  if (order?.user?.email) {
+    try {
+      await addPaymentFailedEmailJob(order.user.email, order.user.name, order);
+    } catch (err) {
+    }
   }
 };
 
@@ -42,6 +52,7 @@ export const expireStalePendingOrders = async (userId) => {
           await invalidateBookCache(item.book_id);
         }
         emitBooksUpdated();
+        await queuePaymentFailedEmail(failedOrder);
       }
     }
   } catch (err) {
@@ -113,7 +124,14 @@ export const handleWebhookEvent = async (rawBody, signature) => {
     case 'checkout.session.completed': {
       const session = event.data.object;
       const orderId = parseInt(session.metadata.order_id);
-      await paymentRepo.markOrderPaid(orderId, session.payment_intent);
+      const paidOrder = await paymentRepo.markOrderPaid(orderId, session.payment_intent);
+
+      if (paidOrder?.user?.email) {
+        try {
+          await addPaymentSuccessEmailJob(paidOrder.user.email, paidOrder.user.name, paidOrder);
+        } catch (err) {
+        }
+      }
       break;
     }
 
@@ -127,6 +145,7 @@ export const handleWebhookEvent = async (rawBody, signature) => {
           await invalidateBookCache(item.book_id);
         }
         emitBooksUpdated();
+        await queuePaymentFailedEmail(failedOrder);
       }
       break;
     }
