@@ -2,12 +2,13 @@ import express from 'express';
 import * as refundService from '../../modules/refund/refund.service.js';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
+import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 
 const router = express.Router();
 
 router.use(authMiddleware);
 
-router.post('/', async (req, res) => {
+router.post('/', doubleCsrfProtection, async (req, res) => {
   const { order_id, reason } = req.body;
   const orderId = parseInt(order_id);
 
@@ -34,7 +35,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
   res.status(status).json(response);
 });
 
-router.post('/:id/approve', requireAdmin, async (req, res) => {
+router.post('/:id/approve', requireAdmin, doubleCsrfProtection, async (req, res) => {
   const requestId = parseInt(req.params.id);
   if (Number.isNaN(requestId)) {
     return res.status(400).json({ success: false, message: 'رقم الطلب غير صالح' });
@@ -43,7 +44,7 @@ router.post('/:id/approve', requireAdmin, async (req, res) => {
   res.status(status).json(response);
 });
 
-router.post('/:id/reject', requireAdmin, async (req, res) => {
+router.post('/:id/reject', requireAdmin, doubleCsrfProtection, async (req, res) => {
   const requestId = parseInt(req.params.id);
   if (Number.isNaN(requestId)) {
     return res.status(400).json({ success: false, message: 'رقم الطلب غير صالح' });
@@ -55,7 +56,7 @@ router.post('/:id/reject', requireAdmin, async (req, res) => {
   res.status(status).json(response);
 });
 
-router.post('/:id/cancel', requireAdmin, async (req, res) => {
+router.post('/:id/cancel', requireAdmin, doubleCsrfProtection, async (req, res) => {
   const requestId = parseInt(req.params.id);
   if (Number.isNaN(requestId)) {
     return res.status(400).json({ success: false, message: 'رقم الطلب غير صالح' });
@@ -67,7 +68,7 @@ router.post('/:id/cancel', requireAdmin, async (req, res) => {
   res.status(status).json(response);
 });
 
-router.post('/:id/complete', requireAdmin, async (req, res) => {
+router.post('/:id/complete', requireAdmin, doubleCsrfProtection, async (req, res) => {
   const requestId = parseInt(req.params.id);
   if (Number.isNaN(requestId)) {
     return res.status(400).json({ success: false, message: 'رقم الطلب غير صالح' });

@@ -9,6 +9,7 @@ import reviewRoutes from './review.routes.js';
 import paymentRoutes from './payment.routes.js';
 import orderRoutes from './order.routes.js';
 import refundRoutes from './refund.routes.js';
+import csrfRoutes from './csrf.routes.js';
 
 
 const router = express.Router();
@@ -23,5 +24,6 @@ router.use('/reviews', reviewRoutes);
 router.use('/payment', paymentRoutes);
 router.use('/orders', orderRoutes);
 router.use('/refunds', refundRoutes);
+router.use('/csrf-token', csrfRoutes);
 
 export default router;

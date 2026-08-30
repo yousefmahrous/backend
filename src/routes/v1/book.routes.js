@@ -3,6 +3,7 @@ import * as bookService from '../../modules/book/book.service.js';
 import { validateAdd, validateEdit } from '../../core/middlewares/validation.js';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
+import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ router.get('/', async (req, res) => {
   res.status(status).json(response);
 });
 
-router.post('/', authMiddleware, requireAdmin, validateAdd, async (req, res) => {
+router.post('/', authMiddleware, requireAdmin, doubleCsrfProtection, validateAdd, async (req, res) => {
   const { status, ...response } = await bookService.addBook(req.body);
   res.status(status).json(response);
 });
@@ -28,12 +29,12 @@ router.get('/:id', async (req, res) => {
   res.status(status).json(response);
 });
 
-router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
+router.delete('/:id', authMiddleware, requireAdmin, doubleCsrfProtection, async (req, res) => {
   const { status, ...response } = await bookService.deleteBook(req.params.id);
   res.status(status).json(response);
 });
 
-router.put('/:id', authMiddleware, requireAdmin, validateEdit, async (req, res) => {
+router.put('/:id', authMiddleware, requireAdmin, doubleCsrfProtection, validateEdit, async (req, res) => {
   const { status, ...response } = await bookService.editBook(req.params.id, req.body);
   res.status(status).json(response);
 });

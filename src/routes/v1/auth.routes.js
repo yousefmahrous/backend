@@ -2,6 +2,7 @@ import express from 'express';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import * as service from '../../modules/auth/auth.service.js';
 import { signupSchema, loginSchema } from '../../modules/auth/auth.schema.js';
+import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 import {
   loginLimiter,
   signupLimiter,
@@ -27,7 +28,7 @@ router.post('/signup', signupLimiter, async (req, res) => {
   }
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login',  async (req, res) => {
   try {
     const validatedData = loginSchema.parse(req.body);
     const user = await service.login(validatedData);
@@ -80,7 +81,7 @@ router.post('/resend-verification', resendVerificationLimiter, async (req, res) 
   }
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', doubleCsrfProtection, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).json({ message: 'فشل تسجيل الخروج' });
@@ -117,7 +118,7 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-router.post('/change-password', authMiddleware, async (req, res) => {
+router.post('/change-password', authMiddleware, doubleCsrfProtection, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
 
@@ -133,5 +134,6 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 export default router;
