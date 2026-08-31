@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import http from 'http';
+import { globalLimiter } from './core/middlewares/rateLimiter.middleware.js';
+import helmet from 'helmet';
 import sessionMiddleware from './core/config/session.config.js';
 import { init } from './core/config/socket.config.js';
 import v1Router from './routes/v1/index.js';
@@ -11,6 +13,14 @@ import './core/email.worker.js';
 
 const app = express();
 app.set('trust proxy', 1);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+
+app.use(globalLimiter);
 
 const allowedOrigins = [
   process.env.CLIENT_URL_DEV,

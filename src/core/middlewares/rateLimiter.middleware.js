@@ -92,3 +92,19 @@ export const checkoutLimiter = rateLimit({
     message: 'لقد حاولت الدفع مرات كتيرة. برجاء الانتظار شوية والمحاولة تاني.'
   }
 });
+
+
+export const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:global:',
+  }),
+  message: {
+    success: false,
+    message: 'طلبات كتيرة جدًا من عنوانك، برجاء الانتظار شوية.'
+  }
+});
