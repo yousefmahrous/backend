@@ -15,7 +15,9 @@ export const getUploadUrl = async (req, res) => {
       data: result
     });
   } catch (error) {
-    console.error('Error generating presigned URL:', error);
+    if (error.message.includes('نوع الملف غير مسموح')) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'حدث خطأ أثناء توليد رابط الرفع' });
   }
 };

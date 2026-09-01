@@ -2,11 +2,14 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import redisClient from '../config/redis.client.js';
 
+const skipInTests = () => process.env.DISABLE_RATE_LIMIT === 'true';
+
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:login:',
@@ -22,6 +25,7 @@ export const signupLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:signup:',
@@ -37,6 +41,7 @@ export const forgotPasswordLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:forgot:',
@@ -52,6 +57,7 @@ export const resendVerificationLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:resend-verify:',
@@ -67,6 +73,7 @@ export const contactLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:contact:',
@@ -82,6 +89,7 @@ export const checkoutLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   keyGenerator: (req) => req.user?.id?.toString() ?? ipKeyGenerator(req.ip),
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
@@ -99,6 +107,7 @@ export const globalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInTests,
   store: new RedisStore({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:global:',

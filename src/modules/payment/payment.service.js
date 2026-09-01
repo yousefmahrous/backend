@@ -120,6 +120,14 @@ export const handleWebhookEvent = async (rawBody, signature) => {
     return { success: false, status: 400, message: 'توقيع غير صالح' };
   }
 
+  const idempotencyKey = `stripe:webhook:${event.id}`;
+  const alreadyProcessed = await redisClient.get(idempotencyKey);
+
+  if (alreadyProcessed) {
+    return { success: true, status: 200 };
+  }
+
+  await redisClient.set(idempotencyKey, '1', { EX: 60 * 60 * 24 });
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object;

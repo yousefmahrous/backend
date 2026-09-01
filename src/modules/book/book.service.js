@@ -99,6 +99,18 @@ export const deleteBook = async (id) => {
     getIO().emit('books_updated');
     return { success: true, status: 200, message: "تم حذف الكتاب بنجاح" };
   } catch (err) {
+    const isForeignKeyError =
+      err.code === 'P2003' ||
+      err.code === 'P2039' ||
+      /foreign key|RESTRICT/i.test(err.message || '');
+
+    if (isForeignKeyError) {
+      return {
+        success: false,
+        status: 409,
+        message: "مينفعش تحذف الكتاب ده لأنه مرتبط بأوردرات سابقة."
+      };
+    }
     console.error(err);
     return { success: false, status: 500, message: "خطـأ في عملية المسح" };
   }

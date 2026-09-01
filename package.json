@@ -6,7 +6,8 @@
   "scripts": {
     "postinstall": "prisma generate",
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "dev:test": "cross-env DISABLE_RATE_LIMIT=true nodemon src/app.js"
   },
   "keywords": [],
   "author": "",
@@ -42,6 +43,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "prisma": "^7.9.1"
   }
 }
