@@ -3,7 +3,7 @@ import * as favoriteRepo from './favorite.repository.js';
 const serializeFavorite = (fav) => ({
   id: fav.id,
   book: {
-    id: fav.book.id,
+    id: String(fav.book.id),
     name: fav.book.title,
     number: fav.book.isbn,
     category: fav.book.category,
