@@ -1,48 +1,54 @@
 import { z } from 'zod';
+import { BOOK_CATEGORY_KEYS } from './book.constants.js';
 
-export const bookSchema = z.object({
-  name: z.string()
-    .trim()
-    .min(3, "عنوان الكتاب لازم يكون 3 حروف على الأقل"),
+const bilingualField = (t, label, min) =>
+  z.object({
+    ar: z.string().trim().min(min, t(`book.validation.${label}Min`, { lang: 'AR' })),
+    en: z.string().trim().min(min, t(`book.validation.${label}Min`, { lang: 'EN' })),
+  });
 
-  number: z.string()
-    .trim()
-    .regex(/^(?:\d[- ]?){9,17}\d$/, "يرجى كتابة رقم ISBN صحيح"),
+export const createBookSchema = (t) =>
+  z.object({
+    name: bilingualField(t, 'title', 3),
 
-  email: z.string()
-    .trim()
-    .email("صيغة البريد الإلكتروني غير صحيحة"),
+    number: z.string()
+      .trim()
+      .regex(/^(?:\d[- ]?){9,17}\d$/, t('book.validation.isbnInvalid')),
 
-  adress: z.string()
-    .trim()
-    .min(5, "يرجى كتابة وصف الكتاب بالتفصيل"),
+    email: z.string()
+      .trim()
+      .email(t('book.validation.emailInvalid')),
 
-  centre: z.string()
-    .trim()
-    .min(2, "يرجى كتابة اسم دار النشر بشكل صحيح"),
+    adress: bilingualField(t, 'description', 5),
 
-  category: z.enum(["روايات", "علمي", "تاريخي", "أطفال"], {
-    errorMap: () => ({ message: "يرجى اختيار تصنيف الكتاب من القائمة" })
-  }),
+    centre: z.string()
+      .trim()
+      .min(2, t('book.validation.publisherMin')),
 
-  stock: z.coerce.number({ invalid_type_error: "الكمية لازم تكون رقم" })
-    .int("الكمية لازم تكون رقم صحيح")
-    .min(0, "الكمية متقدرش تكون سالبة"),
+    category: z.enum(BOOK_CATEGORY_KEYS, {
+      errorMap: () => ({ message: t('book.validation.categoryInvalid') })
+    }),
 
-  price: z.coerce.number({ invalid_type_error: "السعر لازم يكون رقم" })
-    .min(0, "السعر متقدرش يكون سالب")
-    .transform((val) => Math.round(val * 100)),
+    stock: z.coerce.number({ invalid_type_error: t('book.validation.stockType') })
+      .int(t('book.validation.stockInt'))
+      .min(0, t('book.validation.stockNegative')),
 
-  avatar_key: z.string().trim().nullable().optional()
-});
+    price: z.coerce.number({ invalid_type_error: t('book.validation.priceType') })
+      .min(0, t('book.validation.priceNegative'))
+      .transform((val) => Math.round(val * 100)),
 
-export const editBookSchema = z.object({
-  name: z.string().trim().min(3, "عنوان الكتاب لازم يكون 3 حروف على الأقل"),
-  email: z.string().trim().email("صيغة البريد الإلكتروني غير صحيحة"),
-  stock: z.coerce.number({ invalid_type_error: "الكمية لازم تكون رقم" })
-    .int("الكمية لازم تكون رقم صحيح")
-    .min(0, "الكمية متقدرش تكون سالبة"),
-  price: z.coerce.number({ invalid_type_error: "السعر لازم يكون رقم" })
-    .min(0, "السعر متقدرش يكون سالب")
-    .transform((val) => Math.round(val * 100)),
-});
+    avatar_key: z.string().trim().nullable().optional()
+  });
+
+export const createEditBookSchema = (t) =>
+  z.object({
+    name: bilingualField(t, 'title', 3),
+    adress: bilingualField(t, 'description', 5),
+    email: z.string().trim().email(t('book.validation.emailInvalid')),
+    stock: z.coerce.number({ invalid_type_error: t('book.validation.stockType') })
+      .int(t('book.validation.stockInt'))
+      .min(0, t('book.validation.stockNegative')),
+    price: z.coerce.number({ invalid_type_error: t('book.validation.priceType') })
+      .min(0, t('book.validation.priceNegative'))
+      .transform((val) => Math.round(val * 100)),
+  });

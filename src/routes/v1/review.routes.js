@@ -1,6 +1,6 @@
 import express from 'express';
 import * as reviewService from '../../modules/review/review.service.js';
-import { reviewSchema } from '../../modules/review/review.schema.js';
+import { createReviewSchema } from '../../modules/review/review.schema.js';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 
@@ -9,6 +9,7 @@ const router = express.Router();
 router.get('/books/:bookId', async (req, res) => {
   const { page, limit } = req.query;
   const { status, ...response } = await reviewService.getReviewsForBook(
+    req.t,
     parseInt(req.params.bookId),
     page,
     limit
@@ -18,16 +19,17 @@ router.get('/books/:bookId', async (req, res) => {
 
 router.post('/books/:bookId', authMiddleware, doubleCsrfProtection, async (req, res) => {
   if (req.user.role === 'admin') {
-    return res.status(403).json({ success: false, message: 'التقييمات متاحة للعملاء فقط' });
+    return res.status(403).json({ success: false, message: req.t('review.customersOnly') });
   }
 
-  const result = reviewSchema.safeParse(req.body);
+  const result = createReviewSchema(req.t).safeParse(req.body);
   if (!result.success) {
     const fieldErrors = result.error.flatten().fieldErrors;
     return res.status(400).json({ success: false, errors: fieldErrors });
   }
 
   const { status, ...response } = await reviewService.addOrUpdateReview(
+    req.t,
     req.user.id,
     parseInt(req.params.bookId),
     result.data
@@ -38,6 +40,7 @@ router.post('/books/:bookId', authMiddleware, doubleCsrfProtection, async (req, 
 router.delete('/:id', authMiddleware, doubleCsrfProtection, async (req, res) => {
   const isAdmin = req.user.role === 'admin';
   const { status, ...response } = await reviewService.deleteReview(
+    req.t,
     parseInt(req.params.id),
     req.user.id,
     isAdmin

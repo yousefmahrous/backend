@@ -12,7 +12,7 @@ const serializeReview = (review) => ({
   }
 });
 
-export const getReviewsForBook = async (bookId, page = 1, limit = 10) => {
+export const getReviewsForBook = async (t, bookId, page = 1, limit = 10) => {
   try {
     const pageNumber = Math.max(1, parseInt(page) || 1);
     const limitNumber = Math.max(1, Math.min(50, parseInt(limit) || 10));
@@ -20,7 +20,7 @@ export const getReviewsForBook = async (bookId, page = 1, limit = 10) => {
 
     const book = await reviewRepo.getBookById(bookId);
     if (!book) {
-      return { success: false, status: 404, message: 'الكتاب غير موجود' };
+      return { success: false, status: 404, message: t('review.bookNotFound') };
     }
 
     const { reviews, totalCount } = await reviewRepo.getReviewsByBook(bookId, skip, limitNumber);
@@ -45,15 +45,15 @@ export const getReviewsForBook = async (bookId, page = 1, limit = 10) => {
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ في السيرفر' };
+    return { success: false, status: 500, message: t('review.serverError') };
   }
 };
 
-export const addOrUpdateReview = async (userId, bookId, reviewData) => {
+export const addOrUpdateReview = async (t, userId, bookId, reviewData) => {
   try {
     const book = await reviewRepo.getBookById(bookId);
     if (!book) {
-      return { success: false, status: 404, message: 'الكتاب غير موجود' };
+      return { success: false, status: 404, message: t('review.bookNotFound') };
     }
 
     const existing = await reviewRepo.findReview(userId, bookId);
@@ -69,7 +69,7 @@ export const addOrUpdateReview = async (userId, bookId, reviewData) => {
     return {
       success: true,
       status: isUpdate ? 200 : 201,
-      message: isUpdate ? 'تم تعديل تقييمك بنجاح' : 'تم إضافة تقييمك بنجاح',
+      message: isUpdate ? t('review.updated') : t('review.added'),
       data: {
         review: serializeReview(review),
         rating_average: bookRating.ratingAverage,
@@ -78,19 +78,19 @@ export const addOrUpdateReview = async (userId, bookId, reviewData) => {
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء حفظ التقييم' };
+    return { success: false, status: 500, message: t('review.saveError') };
   }
 };
 
-export const deleteReview = async (reviewId, userId, isAdmin) => {
+export const deleteReview = async (t, reviewId, userId, isAdmin) => {
   try {
     const review = await reviewRepo.getReviewById(reviewId);
     if (!review) {
-      return { success: false, status: 404, message: 'التقييم غير موجود' };
+      return { success: false, status: 404, message: t('review.notFound') };
     }
 
     if (!isAdmin && review.user_id !== userId) {
-      return { success: false, status: 403, message: 'غير مصرح لك بحذف هذا التقييم' };
+      return { success: false, status: 403, message: t('review.notAllowedToDelete') };
     }
 
     const { bookRating } = await reviewRepo.deleteReview(reviewId, review.book_id);
@@ -98,7 +98,7 @@ export const deleteReview = async (reviewId, userId, isAdmin) => {
     return {
       success: true,
       status: 200,
-      message: 'تم حذف التقييم بنجاح',
+      message: t('review.deleted'),
       data: {
         rating_average: bookRating.ratingAverage,
         reviews_count: bookRating.reviewsCount
@@ -106,6 +106,6 @@ export const deleteReview = async (reviewId, userId, isAdmin) => {
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء حذف التقييم' };
+    return { success: false, status: 500, message: t('review.deleteError') };
   }
 };

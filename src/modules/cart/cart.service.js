@@ -39,22 +39,22 @@ const invalidateBookCache = async (bookId) => {
   }
 };
 
-export const getCart = async (userId) => {
+export const getCart = async (t, userId) => {
   try {
     await paymentService.expireStalePendingOrders(userId);
     const cart = await cartRepo.getOrCreateCart(userId);
     return { success: true, status: 200, data: serializeCart(cart) };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل العربية' };
+    return { success: false, status: 500, message: t('cart.loadError') };
   }
 };
 
-export const addToCart = async (userId, bookId) => {
+export const addToCart = async (t, userId, bookId) => {
   try {
     const book = await cartRepo.getBookById(bookId);
     if (!book) {
-      return { success: false, status: 404, message: 'الكتاب غير موجود' };
+      return { success: false, status: 404, message: t('cart.bookNotFound') };
     }
 
     const cart = await cartRepo.getOrCreateCart(userId);
@@ -64,7 +64,7 @@ export const addToCart = async (userId, bookId) => {
       await cartRepo.reserveAndAddItem(cart.id, bookId, 1);
     } catch (txErr) {
       if (txErr.message === 'OUT_OF_STOCK') {
-        return { success: false, status: 400, message: 'الكمية المتاحة من الكتاب خلصت' };
+        return { success: false, status: 400, message: t('cart.outOfStock') };
       }
       throw txErr;
     }
@@ -74,23 +74,23 @@ export const addToCart = async (userId, bookId) => {
     await invalidateBookCache(bookId);
     emitBooksUpdated();
 
-    return { success: true, status: 201, data: serializeCart(updatedCart), message: 'تم إضافة الكتاب للعربية' };
+    return { success: true, status: 201, data: serializeCart(updatedCart), message: t('cart.addSuccess') };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء الإضافة للعربية' };
+    return { success: false, status: 500, message: t('cart.addError') };
   }
 };
 
-export const updateQuantity = async (userId, itemId, quantity) => {
+export const updateQuantity = async (t, userId, itemId, quantity) => {
   try {
     if (quantity < 1) {
-      return { success: false, status: 400, message: 'الكمية لازم تكون 1 على الأقل' };
+      return { success: false, status: 400, message: t('cart.quantityMin') };
     }
 
     const cart = await cartRepo.getOrCreateCart(userId);
     const item = await cartRepo.findCartItem(cart.id, itemId);
     if (!item) {
-      return { success: false, status: 404, message: 'العنصر غير موجود في عربيتك' };
+      return { success: false, status: 404, message: t('cart.itemNotFound') };
     }
 
     try {
@@ -98,10 +98,10 @@ export const updateQuantity = async (userId, itemId, quantity) => {
       await cartRepo.reserveAndUpdateQuantity(itemId, quantity);
     } catch (txErr) {
       if (txErr.message === 'OUT_OF_STOCK') {
-        return { success: false, status: 400, message: `أقصى كمية متاحة من الكتاب ده هي ${item.book.stock}` };
+        return { success: false, status: 400, message: t('cart.maxStock', { stock: item.book.stock }) };
       }
       if (txErr.message === 'ITEM_NOT_FOUND') {
-        return { success: false, status: 404, message: 'العنصر غير موجود في عربيتك' };
+        return { success: false, status: 404, message: t('cart.itemNotFound') };
       }
       throw txErr;
     }
@@ -114,16 +114,16 @@ export const updateQuantity = async (userId, itemId, quantity) => {
     return { success: true, status: 200, data: serializeCart(updatedCart) };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحديث الكمية' };
+    return { success: false, status: 500, message: t('cart.updateError') };
   }
 };
 
-export const removeFromCart = async (userId, itemId) => {
+export const removeFromCart = async (t, userId, itemId) => {
   try {
     const cart = await cartRepo.getOrCreateCart(userId);
     const item = await cartRepo.findCartItem(cart.id, itemId);
     if (!item) {
-      return { success: false, status: 404, message: 'العنصر غير موجود في عربيتك' };
+      return { success: false, status: 404, message: t('cart.itemNotFound') };
     }
     await cartRepo.releaseAndRemoveItem(itemId);
 
@@ -132,9 +132,9 @@ export const removeFromCart = async (userId, itemId) => {
     await invalidateBookCache(item.book.id);
     emitBooksUpdated();
 
-    return { success: true, status: 200, data: serializeCart(updatedCart), message: 'تم حذف الكتاب من العربية' };
+    return { success: true, status: 200, data: serializeCart(updatedCart), message: t('cart.removeSuccess') };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء الحذف من العربية' };
+    return { success: false, status: 500, message: t('cart.removeError') };
   }
 };

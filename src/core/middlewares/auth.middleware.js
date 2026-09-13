@@ -4,7 +4,7 @@ const authMiddleware = (req, res, next) => {
     return next();
   }
   return res.status(401).json({
-    message: 'غير مصرح لك بالدخول، برجاء تسجيل الدخول أولاً'
+    message: req.t('common.unauthorized')
   });
 };
 

@@ -5,6 +5,7 @@ import * as refundRepo from '../refund/refund.repository.js';
 import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
 import { addPaymentSuccessEmailJob, addPaymentFailedEmailJob } from '../../core/email.queue.js';
+import { pickLocalized } from '../../core/i18n/localized.js';
 
 const PENDING_ORDER_EXPIRY_MINUTES = 30;
 
@@ -25,7 +26,7 @@ const emitBooksUpdated = () => {
 const queuePaymentFailedEmail = async (order) => {
   if (order?.user?.email) {
     try {
-      await addPaymentFailedEmailJob(order.user.email, order.user.name, order);
+      await addPaymentFailedEmailJob(order.user.email, order.user.name, order, order.user.preferred_lang);
     } catch (err) {
     }
   }
@@ -59,12 +60,12 @@ export const expireStalePendingOrders = async (userId) => {
   }
 };
 
-export const createCheckoutSession = async (userId) => {
+export const createCheckoutSession = async (t, lang, userId) => {
   try {
     const cart = await cartRepo.getOrCreateCart(userId);
 
     if (!cart.items || cart.items.length === 0) {
-      return { success: false, status: 400, message: 'العربية فاضية، مينفعش تكمل دفع' };
+      return { success: false, status: 400, message: t('payment.cartEmpty') };
     }
 
     const existingPending = await paymentRepo.findPendingOrderByUser(userId);
@@ -83,7 +84,7 @@ export const createCheckoutSession = async (userId) => {
     const line_items = order.items.map((item) => ({
       price_data: {
         currency: 'egp',
-        product_data: { name: item.book.title },
+        product_data: { name: pickLocalized(item.book.title, lang) },
         unit_amount: item.unit_price
       },
       quantity: item.quantity
@@ -102,7 +103,7 @@ export const createCheckoutSession = async (userId) => {
     return { success: true, status: 200, data: { url: session.url } };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء إنشاء جلسة الدفع' };
+    return { success: false, status: 500, message: t('payment.checkoutError') };
   }
 };
 
@@ -136,7 +137,7 @@ export const handleWebhookEvent = async (rawBody, signature) => {
 
       if (paidOrder?.user?.email) {
         try {
-          await addPaymentSuccessEmailJob(paidOrder.user.email, paidOrder.user.name, paidOrder);
+          await addPaymentSuccessEmailJob(paidOrder.user.email, paidOrder.user.name, paidOrder, paidOrder.user.preferred_lang);
         } catch (err) {
         }
       }

@@ -20,12 +20,12 @@ const serializeBook = (book) => {
   };
 };
 
-export const getAllBooks = async (page = 1, limit = 10, search = "") => {
+export const getAllBooks = async (t, page = 1, limit = 10, search = "", category = "") => {
   try {
     const pageNumber = Math.max(1, parseInt(page) || 1);
     const limitNumber = Math.max(1, parseInt(limit) || 10);
     const skip = (pageNumber - 1) * limitNumber;
-    const { books, totalCount } = await bookRepo.getAllBooks(skip, limitNumber, search);
+    const { books, totalCount } = await bookRepo.getAllBooks(skip, limitNumber, search, category);
     const totalPages = Math.ceil(totalCount / limitNumber);
 
     return {
@@ -45,11 +45,11 @@ export const getAllBooks = async (page = 1, limit = 10, search = "") => {
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: "حدث خطأ في السيرفر" };
+    return { success: false, status: 500, message: t('common.serverError') };
   }
 };
 
-export const getBookById = async (id) => {
+export const getBookById = async (t, id) => {
   try {
     const cachedBook = await redisClient.get(`books:${id}`);
     if (cachedBook) {
@@ -58,20 +58,23 @@ export const getBookById = async (id) => {
 
     const book = await bookRepo.getBookById(id);
     if (!book) {
-      return { success: false, status: 404, message: "الكتاب غير موجود" };
+      return { success: false, status: 404, message: t('book.notFound') };
     }
 
+    // category stays as the raw key here: this endpoint feeds both the public
+    // detail page (which translates it itself, see BookCard/books.$id.tsx) and
+    // the admin edit form (which needs the raw key to preselect the <Select>).
     const serialized = serializeBook(book);
     await redisClient.set(`books:${id}`, JSON.stringify(serialized), { EX: 3600 });
 
     return { success: true, status: 200, data: { user: serialized } };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: "حدث خطأ في السيرفر" };
+    return { success: false, status: 500, message: t('common.serverError') };
   }
 };
 
-export const addBook = async (bookData) => {
+export const addBook = async (t, bookData) => {
   try {
     await bookRepo.createBook(bookData);
 
@@ -85,19 +88,19 @@ export const addBook = async (bookData) => {
 
     getIO().emit('books_updated');
 
-    return { success: true, status: 201, message: "تم إضافة الكتاب بنجاح" };
+    return { success: true, status: 201, message: t('book.added') };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: "حدث خطأ أثناء الحفظ في قاعدة البيانات" };
+    return { success: false, status: 500, message: t('book.addError') };
   }
 };
 
-export const deleteBook = async (id) => {
+export const deleteBook = async (t, id) => {
   try {
     await bookRepo.deleteBook(id);
     await redisClient.del(['books:all', `books:${id}`]);
     getIO().emit('books_updated');
-    return { success: true, status: 200, message: "تم حذف الكتاب بنجاح" };
+    return { success: true, status: 200, message: t('book.deleted') };
   } catch (err) {
     const isForeignKeyError =
       err.code === 'P2003' ||
@@ -108,15 +111,15 @@ export const deleteBook = async (id) => {
       return {
         success: false,
         status: 409,
-        message: "مينفعش تحذف الكتاب ده لأنه مرتبط بأوردرات سابقة."
+        message: t('book.deleteForeignKey')
       };
     }
     console.error(err);
-    return { success: false, status: 500, message: "خطـأ في عملية المسح" };
+    return { success: false, status: 500, message: t('book.deleteError') };
   }
 };
 
-export const editBook = async (id, bookData) => {
+export const editBook = async (t, id, bookData) => {
   try {
     await bookRepo.updateBook(id, bookData);
 
@@ -128,20 +131,20 @@ export const editBook = async (id, bookData) => {
       console.log("تخطي خطأ مسح الكاش من Redis");
     }
     getIO().emit('books_updated');
-    return { success: true, status: 200, message: "تم تعديل بيانات الكتاب بنجاح" };
+    return { success: true, status: 200, message: t('book.updated') };
 
   } catch (err) {
     console.error("خطأ الباك إند في التعديل:", err);
 
     if (err.code === 'P2025') {
-      return { success: false, status: 404, message: "الكتاب غير موجود" };
+      return { success: false, status: 404, message: t('book.notFound') };
     }
 
-    return { success: false, status: 500, message: "حدث خطأ في السيرفر أثناء التعديل" };
+    return { success: false, status: 500, message: t('book.updateError') };
   }
 };
 
-export const getPopularBooks = async (limit = 10) => {
+export const getPopularBooks = async (t, limit = 10) => {
   try {
     const limitNumber = Math.max(1, Math.min(50, parseInt(limit) || 10));
     const books = await bookRepo.getPopularBooks(limitNumber);
@@ -153,6 +156,6 @@ export const getPopularBooks = async (limit = 10) => {
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: "حدث خطأ في السيرفر" };
+    return { success: false, status: 500, message: t('common.serverError') };
   }
 };

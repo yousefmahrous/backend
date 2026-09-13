@@ -59,7 +59,7 @@ export const findAllRefundRequests = async (skip, limit, status) => {
       skip,
       take: limit,
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, preferred_lang: true } },
         order: { include: { items: { include: { book: true } } } }
       }
     }),
@@ -74,7 +74,7 @@ export const findRefundRequestById = async (id) => {
     where: { id },
     include: {
       order: true,
-      user: { select: { id: true, name: true, email: true } }
+      user: { select: { id: true, name: true, email: true, preferred_lang: true } }
     }
   });
 };
@@ -86,7 +86,7 @@ export const approveRefundRequest = async (id) => {
       data: { status: 'awaiting_return', reviewed_at: new Date() },
       include: {
         order: { include: { items: { include: { book: true } } } },
-        user: { select: { id: true, name: true, email: true } }
+        user: { select: { id: true, name: true, email: true, preferred_lang: true } }
       }
     });
 
@@ -106,7 +106,7 @@ export const rejectRefundRequest = async (id, adminNote) => {
       data: { status: 'rejected', admin_note: adminNote ?? null, reviewed_at: new Date() },
       include: {
         order: { include: { items: { include: { book: true } } } },
-        user: { select: { id: true, name: true, email: true } }
+        user: { select: { id: true, name: true, email: true, preferred_lang: true } }
       }
     });
 
@@ -126,7 +126,7 @@ export const cancelAwaitingReturn = async (id, adminNote) => {
       data: { status: 'cancelled', admin_note: adminNote ?? null, reviewed_at: new Date() },
       include: {
         order: { include: { items: { include: { book: true } } } },
-        user: { select: { id: true, name: true, email: true } }
+        user: { select: { id: true, name: true, email: true, preferred_lang: true } }
       }
     });
 
@@ -145,7 +145,7 @@ export const completeRefund = async (id) => {
       where: { id },
       include: {
         order: { include: { items: { include: { book: true } } } },
-        user: { select: { id: true, name: true, email: true } }
+        user: { select: { id: true, name: true, email: true, preferred_lang: true } }
       }
     });
 

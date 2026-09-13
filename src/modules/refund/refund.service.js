@@ -2,6 +2,7 @@ import stripe from '../../core/config/stripe.config.js';
 import * as refundRepo from './refund.repository.js';
 import { getIO } from '../../core/config/socket.config.js';
 import { addRefundStatusEmailJob } from '../../core/email.queue.js';
+import { pickLocalized } from '../../core/i18n/localized.js';
 
 const RETURN_WINDOW_DAYS = 14;
 
@@ -15,14 +16,14 @@ const emitBooksUpdated = () => {
 const queueRefundStatusEmail = async (request) => {
   if (request?.user?.email) {
     try {
-      await addRefundStatusEmailJob(request.user.email, request.user.name, request);
+      await addRefundStatusEmailJob(request.user.email, request.user.name, request, request.user.preferred_lang);
     } catch (err) {
       console.error('فشل جدولة إيميل حالة الاسترجاع:', err.message);
     }
   }
 };
 
-const serializeRequest = (request) => ({
+const serializeRequest = (request, lang) => ({
   id: request.id,
   order_id: request.order_id,
   status: request.status,
@@ -40,7 +41,7 @@ const serializeRequest = (request) => ({
         items: request.order.items
           ? request.order.items.map((item) => ({
               book_id: item.book_id,
-              title: item.book?.title,
+              title: pickLocalized(item.book?.title, lang),
               quantity: item.quantity,
               unit_price: item.unit_price
             }))
@@ -52,33 +53,33 @@ const serializeRequest = (request) => ({
     : undefined
 });
 
-export const requestRefund = async (orderId, userId, reason) => {
+export const requestRefund = async (t, lang, orderId, userId, reason) => {
   try {
     if (!reason || !reason.trim()) {
-      return { success: false, status: 400, message: 'من فضلك اكتب سبب الاسترجاع' };
+      return { success: false, status: 400, message: t('refund.reasonRequired') };
     }
 
     const order = await refundRepo.findOrderForRefundRequest(orderId, userId);
 
     if (!order) {
-      return { success: false, status: 404, message: 'الأوردر غير موجود' };
+      return { success: false, status: 404, message: t('refund.orderNotFound') };
     }
 
     if (order.status !== 'paid') {
       return {
         success: false,
         status: 400,
-        message: 'مينفعش تطلب استرجاع لأوردر لسه مدفعش أو خلص معاه الاسترجاع بالفعل'
+        message: t('refund.orderNotEligible')
       };
     }
 
     const activeRequest = await refundRepo.findActiveRefundRequestForOrder(orderId);
     if (activeRequest) {
-      return { success: false, status: 400, message: 'فيه طلب استرجاع قائم بالفعل لنفس الأوردر' };
+      return { success: false, status: 400, message: t('refund.activeRequestExists') };
     }
 
     if (!order.paid_at) {
-      return { success: false, status: 400, message: 'تعذر التحقق من تاريخ الدفع لهذا الأوردر' };
+      return { success: false, status: 400, message: t('refund.paidAtMissing') };
     }
 
     const deadline = new Date(order.paid_at);
@@ -88,7 +89,7 @@ export const requestRefund = async (orderId, userId, reason) => {
       return {
         success: false,
         status: 400,
-        message: `انتهت مدة الـ ${RETURN_WINDOW_DAYS} يوم المسموحة لطلب استرجاع هذا الأوردر`
+        message: t('refund.windowExpired', { days: RETURN_WINDOW_DAYS })
       };
     }
 
@@ -97,26 +98,26 @@ export const requestRefund = async (orderId, userId, reason) => {
     return {
       success: true,
       status: 201,
-      message: 'تم إرسال طلب الاسترجاع، هيتم مراجعته قريبًا',
-      data: serializeRequest(request)
+      message: t('refund.requestSubmitted'),
+      data: serializeRequest(request, lang)
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء إرسال طلب الاسترجاع' };
+    return { success: false, status: 500, message: t('refund.submitError') };
   }
 };
 
-export const getMyRefundRequests = async (userId) => {
+export const getMyRefundRequests = async (t, lang, userId) => {
   try {
     const requests = await refundRepo.findRefundRequestsForUser(userId);
-    return { success: true, status: 200, data: { items: requests.map(serializeRequest) } };
+    return { success: true, status: 200, data: { items: requests.map((r) => serializeRequest(r, lang)) } };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل طلبات الاسترجاع' };
+    return { success: false, status: 500, message: t('refund.loadError') };
   }
 };
 
-export const getAllRefundRequestsAdmin = async (page = 1, limit = 20, status) => {
+export const getAllRefundRequestsAdmin = async (t, lang, page = 1, limit = 20, status) => {
   try {
     const pageNumber = Math.max(1, parseInt(page) || 1);
     const limitNumber = Math.max(1, parseInt(limit) || 20);
@@ -133,7 +134,7 @@ export const getAllRefundRequestsAdmin = async (page = 1, limit = 20, status) =>
       success: true,
       status: 200,
       data: {
-        items: requests.map(serializeRequest),
+        items: requests.map((r) => serializeRequest(r, lang)),
         pagination: {
           totalCount,
           totalPages,
@@ -146,18 +147,18 @@ export const getAllRefundRequestsAdmin = async (page = 1, limit = 20, status) =>
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل طلبات الاسترجاع' };
+    return { success: false, status: 500, message: t('refund.loadError') };
   }
 };
 
-export const approveRefundRequest = async (id) => {
+export const approveRefundRequest = async (t, lang, id) => {
   try {
     const existing = await refundRepo.findRefundRequestById(id);
     if (!existing) {
-      return { success: false, status: 404, message: 'طلب الاسترجاع غير موجود' };
+      return { success: false, status: 404, message: t('refund.requestNotFound') };
     }
     if (existing.status !== 'pending') {
-      return { success: false, status: 400, message: 'الطلب ده اتراجع بالفعل' };
+      return { success: false, status: 400, message: t('refund.alreadyReviewed') };
     }
 
     const request = await refundRepo.approveRefundRequest(id);
@@ -166,23 +167,23 @@ export const approveRefundRequest = async (id) => {
     return {
       success: true,
       status: 200,
-      message: 'تمت الموافقة على الطلب، في انتظار استلام الكتاب من العميل',
-      data: serializeRequest(request)
+      message: t('refund.approvedMessage'),
+      data: serializeRequest(request, lang)
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء الموافقة على الطلب' };
+    return { success: false, status: 500, message: t('refund.approveError') };
   }
 };
 
-export const rejectRefundRequest = async (id, adminNote) => {
+export const rejectRefundRequest = async (t, lang, id, adminNote) => {
   try {
     const existing = await refundRepo.findRefundRequestById(id);
     if (!existing) {
-      return { success: false, status: 404, message: 'طلب الاسترجاع غير موجود' };
+      return { success: false, status: 404, message: t('refund.requestNotFound') };
     }
     if (existing.status !== 'pending') {
-      return { success: false, status: 400, message: 'الطلب ده اتراجع بالفعل' };
+      return { success: false, status: 400, message: t('refund.alreadyReviewed') };
     }
 
     const request = await refundRepo.rejectRefundRequest(id, adminNote);
@@ -191,23 +192,23 @@ export const rejectRefundRequest = async (id, adminNote) => {
     return {
       success: true,
       status: 200,
-      message: 'تم رفض طلب الاسترجاع',
-      data: serializeRequest(request)
+      message: t('refund.rejectedMessage'),
+      data: serializeRequest(request, lang)
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء رفض الطلب' };
+    return { success: false, status: 500, message: t('refund.rejectError') };
   }
 };
 
-export const cancelAwaitingReturn = async (id, adminNote) => {
+export const cancelAwaitingReturn = async (t, lang, id, adminNote) => {
   try {
     const existing = await refundRepo.findRefundRequestById(id);
     if (!existing) {
-      return { success: false, status: 404, message: 'طلب الاسترجاع غير موجود' };
+      return { success: false, status: 404, message: t('refund.requestNotFound') };
     }
     if (existing.status !== 'awaiting_return') {
-      return { success: false, status: 400, message: 'الطلب ده مش في حالة انتظار استرجاع الكتاب' };
+      return { success: false, status: 400, message: t('refund.notAwaitingReturn') };
     }
 
     const request = await refundRepo.cancelAwaitingReturn(id, adminNote);
@@ -216,33 +217,33 @@ export const cancelAwaitingReturn = async (id, adminNote) => {
     return {
       success: true,
       status: 200,
-      message: 'تم إلغاء طلب الاسترجاع، الأوردر رجع لحالته الطبيعية',
-      data: serializeRequest(request)
+      message: t('refund.cancelledMessage'),
+      data: serializeRequest(request, lang)
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء إلغاء الطلب' };
+    return { success: false, status: 500, message: t('refund.cancelError') };
   }
 };
 
-export const completeRefund = async (id) => {
+export const completeRefund = async (t, lang, id) => {
   try {
     const existing = await refundRepo.findRefundRequestById(id);
     if (!existing) {
-      return { success: false, status: 404, message: 'طلب الاسترجاع غير موجود' };
+      return { success: false, status: 404, message: t('refund.requestNotFound') };
     }
     if (existing.status !== 'awaiting_return') {
       return {
         success: false,
         status: 400,
-        message: 'لازم توافق على الطلب وتستنى الكتاب الأول قبل تنفيذ الاسترجاع'
+        message: t('refund.notApprovedYet')
       };
     }
     if (!existing.order?.payment_intent_id) {
       return {
         success: false,
         status: 400,
-        message: 'تعذر إيجاد عملية الدفع المرتبطة بهذا الأوردر'
+        message: t('refund.paymentIntentMissing')
       };
     }
 
@@ -253,7 +254,7 @@ export const completeRefund = async (id) => {
       return {
         success: false,
         status: 502,
-        message: 'فشل تنفيذ عملية الاسترجاع مع بوابة الدفع، حاول تاني أو راجع حساب Stripe'
+        message: t('refund.stripeFailed')
       };
     }
 
@@ -264,11 +265,11 @@ export const completeRefund = async (id) => {
     return {
       success: true,
       status: 200,
-      message: 'تم تنفيذ الاسترجاع بنجاح، وهترجع الفلوس للعميل خلال أيام حسب بنكه',
-      data: serializeRequest(result)
+      message: t('refund.completedMessage'),
+      data: serializeRequest(result, lang)
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تنفيذ الاسترجاع' };
+    return { success: false, status: 500, message: t('refund.completeError') };
   }
 };

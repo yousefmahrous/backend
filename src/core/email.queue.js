@@ -14,16 +14,16 @@ export const emailQueue = new Queue('email-queue', {
   }
 });
 
-export const addWelcomeEmailJob = async (email, name) => {
-  await emailQueue.add('welcome-email', { email, name });
+export const addWelcomeEmailJob = async (email, name, lang = 'ar') => {
+  await emailQueue.add('welcome-email', { email, name, lang });
 };
 
-export const addVerificationEmailJob = async (email, name, verifyLink) => {
-  await emailQueue.add('verification-email', { email, name, verifyLink });
+export const addVerificationEmailJob = async (email, name, verifyLink, lang = 'ar') => {
+  await emailQueue.add('verification-email', { email, name, verifyLink, lang });
 };
 
-export const addResetPasswordEmailJob = async (email, resetLink) => {
-  await emailQueue.add('reset-password-email', { email, resetLink });
+export const addResetPasswordEmailJob = async (email, resetLink, lang = 'ar') => {
+  await emailQueue.add('reset-password-email', { email, resetLink, lang });
 };
 
 export const addContactNotificationEmailJob = async ({ name, email, subject, message }) => {

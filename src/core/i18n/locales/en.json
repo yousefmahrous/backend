@@ -1,0 +1,171 @@
+{
+  "common": {
+    "serverError": "A server error occurred",
+    "unexpectedError": "An unexpected server error occurred",
+    "corsNotAllowed": "Not allowed by CORS",
+    "unauthorized": "You are not authorized, please log in first",
+    "adminOnly": "You are not allowed to perform this action, this is admin-only",
+    "rateLimit": {
+      "login": "Too many failed login attempts. Please wait 15 minutes and try again.",
+      "signup": "You've reached the maximum number of accounts created from this device. Please try again later.",
+      "forgotPassword": "You've reached the maximum password change attempts, please try again later",
+      "resendVerification": "You've requested the verification link too many times. Please wait a bit and try again.",
+      "contact": "You've sent too many messages, please try again in a bit",
+      "checkout": "You've attempted checkout too many times. Please wait a bit and try again.",
+      "global": "Too many requests from your address, please wait a bit."
+    }
+  },
+  "auth": {
+    "signupSuccess": "Account created successfully, please verify your email",
+    "loginSuccess": "Logged in successfully",
+    "verifyLinkMissing": "Invalid verification link",
+    "emailVerified": "Your email has been verified successfully",
+    "resendVerificationSent": "If this email is registered, a new verification link has been sent",
+    "logoutFailed": "An error occurred while logging out",
+    "logoutSuccess": "Logged out successfully",
+    "forgotPasswordSent": "If this email is registered, a password reset link has been sent",
+    "passwordResetSuccess": "Password changed successfully",
+    "sessionEndError": "An error occurred while ending the session",
+    "passwordChangeSuccess": "Password changed successfully",
+    "emailInUse": "This email is already in use",
+    "invalidCredentials": "Invalid email or password",
+    "emailNotVerified": "Please verify your email first",
+    "verifyTokenInvalid": "Invalid or expired verification link",
+    "resetTokenInvalid": "Invalid or expired reset link",
+    "userNotFound": "User not found",
+    "oldPasswordInvalid": "Current password is incorrect",
+    "validation": {
+      "nameMin": "Name must be at least 3 characters",
+      "emailInvalid": "Invalid email format",
+      "passwordMin": "Password must be at least 6 characters"
+    }
+  },
+  "cart": {
+    "customersOnly": "The cart is only available for customers",
+    "bookIdRequired": "book_id is required",
+    "loadError": "An error occurred while loading the cart",
+    "bookNotFound": "Book not found",
+    "outOfStock": "This book is out of stock",
+    "addSuccess": "Book added to your cart",
+    "addError": "An error occurred while adding to the cart",
+    "quantityMin": "Quantity must be at least 1",
+    "itemNotFound": "Item not found in your cart",
+    "maxStock": "The maximum available quantity for this book is {{stock}}",
+    "updateError": "An error occurred while updating the quantity",
+    "removeSuccess": "Book removed from your cart",
+    "removeError": "An error occurred while removing from the cart"
+  },
+  "favorite": {
+    "customersOnly": "Favorites are only available for customers",
+    "bookIdRequired": "book_id is required",
+    "loadError": "An error occurred while loading favorites",
+    "bookNotFound": "Book not found",
+    "alreadyExists": "This book is already in your favorites",
+    "addSuccess": "Book added to favorites",
+    "addError": "An error occurred while adding to favorites",
+    "notInFavorites": "This book is not in your favorites",
+    "removeSuccess": "Book removed from favorites",
+    "removeError": "An error occurred while removing from favorites"
+  },
+  "order": {
+    "invalidId": "Invalid order number",
+    "notFound": "Order not found",
+    "loadError": "An error occurred while loading the order",
+    "noOrdersYet": "No orders yet",
+    "loadListError": "An error occurred while loading orders"
+  },
+  "review": {
+    "customersOnly": "Reviews are only available for customers",
+    "bookNotFound": "Book not found",
+    "serverError": "A server error occurred",
+    "updated": "Your review has been updated successfully",
+    "added": "Your review has been added successfully",
+    "saveError": "An error occurred while saving the review",
+    "notFound": "Review not found",
+    "notAllowedToDelete": "You are not allowed to delete this review",
+    "deleted": "Review deleted successfully",
+    "deleteError": "An error occurred while deleting the review",
+    "validation": {
+      "ratingType": "Rating must be a number",
+      "ratingInt": "Rating must be a whole number",
+      "ratingRange": "Rating must be between 1 and 5",
+      "commentMin": "Comment must be at least 3 characters",
+      "commentMax": "Comment is too long"
+    }
+  },
+  "contact": {
+    "sendSuccess": "Your message has been sent successfully, we'll get back to you soon",
+    "sendError": "An error occurred while sending the message",
+    "validation": {
+      "nameMin": "Name must be at least 3 characters",
+      "emailInvalid": "Invalid email format",
+      "subjectMin": "Subject must be at least 3 characters",
+      "messageMin": "Message must be at least 10 characters",
+      "messageMax": "Message is too long"
+    }
+  },
+  "refund": {
+    "reasonRequired": "Please write a reason for the refund",
+    "orderNotFound": "Order not found",
+    "orderNotEligible": "This order can't be refunded — it's either unpaid or already refunded",
+    "activeRequestExists": "There's already an active refund request for this order",
+    "paidAtMissing": "Couldn't verify the payment date for this order",
+    "windowExpired": "The {{days}}-day refund window for this order has expired",
+    "requestSubmitted": "Your refund request has been sent and will be reviewed soon",
+    "submitError": "An error occurred while sending the refund request",
+    "loadError": "An error occurred while loading refund requests",
+    "requestNotFound": "Refund request not found",
+    "alreadyReviewed": "This request has already been reviewed",
+    "approvedMessage": "Request approved, awaiting the book's return from the customer",
+    "approveError": "An error occurred while approving the request",
+    "rejectedMessage": "Refund request rejected",
+    "rejectError": "An error occurred while rejecting the request",
+    "notAwaitingReturn": "This request isn't awaiting the book's return",
+    "cancelledMessage": "Refund request cancelled, the order is back to its normal status",
+    "cancelError": "An error occurred while cancelling the request",
+    "notApprovedYet": "You must approve the request and receive the book before completing the refund",
+    "paymentIntentMissing": "Couldn't find the payment linked to this order",
+    "stripeFailed": "The refund failed on the payment gateway's side, try again or check the Stripe account",
+    "completedMessage": "Refund completed successfully, the money will return to the customer within a few days depending on their bank",
+    "completeError": "An error occurred while completing the refund",
+    "invalidRequestId": "Invalid request number"
+  },
+  "payment": {
+    "cartEmpty": "Your cart is empty, you can't proceed to payment",
+    "checkoutError": "An error occurred while creating the checkout session"
+  },
+  "upload": {
+    "missingFields": "fileName and fileType are required",
+    "invalidFileType": "This file type isn't allowed. Allowed types: JPEG, PNG, WEBP only",
+    "generateUrlError": "An error occurred while generating the upload link"
+  },
+  "book": {
+    "notFound": "Book not found",
+    "added": "Book added successfully",
+    "addError": "An error occurred while saving to the database",
+    "deleted": "Book deleted successfully",
+    "deleteError": "An error occurred while deleting",
+    "deleteForeignKey": "This book can't be deleted because it's linked to existing orders.",
+    "updated": "Book updated successfully",
+    "updateError": "A server error occurred while updating",
+    "validation": {
+      "titleMin": "Book title ({{lang}}) must be at least 3 characters",
+      "isbnInvalid": "Please enter a valid ISBN",
+      "emailInvalid": "Invalid email format",
+      "descriptionMin": "Book description ({{lang}}) must be at least 5 characters",
+      "publisherMin": "Please enter a valid publisher name",
+      "categoryInvalid": "Please choose a book category from the list",
+      "stockType": "Stock must be a number",
+      "stockInt": "Stock must be a whole number",
+      "stockNegative": "Stock can't be negative",
+      "priceType": "Price must be a number",
+      "priceNegative": "Price can't be negative"
+    },
+    "categories": {
+      "novels": "Novels",
+      "science": "Science",
+      "history": "History",
+      "kids": "Kids"
+    }
+  }
+}

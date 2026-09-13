@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import prisma from '../src/core/db.js';
 import redisClient from '../src/core/config/redis.client.js';
+import { bilingualText } from '../src/core/i18n/localized.js';
 
 
 const STOCK_LEVEL = 999;
@@ -28,7 +29,7 @@ async function main() {
   await waitForRedis();
   await redisClient.del(['books:all', `books:${latestBook.id}`]);
 
-  console.log(`تم تحديث مخزون الكتاب "${latestBook.title}" (id: ${latestBook.id}) لـ ${STOCK_LEVEL} ومسح الكاش`);
+  console.log(`تم تحديث مخزون الكتاب "${bilingualText(latestBook.title)}" (id: ${latestBook.id}) لـ ${STOCK_LEVEL} ومسح الكاش`);
 }
 
 main()

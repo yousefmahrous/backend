@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.post('/checkout', checkoutLimiter, doubleCsrfProtection, async (req, res) => {
-  const { status, ...response } = await paymentService.createCheckoutSession(req.user.id);
+  const { status, ...response } = await paymentService.createCheckoutSession(req.t, req.lang, req.user.id);
   res.status(status).json(response);
 });
 

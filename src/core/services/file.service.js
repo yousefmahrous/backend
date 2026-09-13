@@ -9,9 +9,11 @@ const ALLOWED_CONTENT_TYPES = new Set([
   'image/webp',
 ]);
 
-export const generatePresignedUploadUrl = async (originalFileName, contentType) => {
+export const generatePresignedUploadUrl = async (t, originalFileName, contentType) => {
   if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
-    throw new Error('نوع الملف غير مسموح به. الأنواع المسموحة: JPEG, PNG, WEBP فقط');
+    const err = new Error(t('upload.invalidFileType'));
+    err.code = 'INVALID_FILE_TYPE';
+    throw err;
   }
 
   const fileExtension = originalFileName.split('.').pop();

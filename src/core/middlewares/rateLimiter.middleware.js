@@ -4,6 +4,15 @@ import redisClient from '../config/redis.client.js';
 
 const skipInTests = () => process.env.DISABLE_RATE_LIMIT === 'true';
 
+function localizedHandler(messageKey) {
+  return (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: req.t ? req.t(messageKey) : undefined,
+    });
+  };
+}
+
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
@@ -14,10 +23,7 @@ export const loginLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:login:',
   }),
-  message: {
-    success: false,
-    message: 'عفواً، قمت بمحاولات تسجيل دخول كثيرة خاطئة. يرجى الانتظار 15 دقيقة ثم المحاولة مجدداً.'
-  }
+  handler: localizedHandler('common.rateLimit.login'),
 });
 
 export const signupLimiter = rateLimit({
@@ -30,10 +36,7 @@ export const signupLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:signup:',
   }),
-  message: {
-    success: false,
-    message: 'تم تجاوز الحد الأقصى لإنشاء الحسابات من هذا الجهاز. يرجى المحاولة لاحقاً.'
-  }
+  handler: localizedHandler('common.rateLimit.signup'),
 });
 
 export const forgotPasswordLimiter = rateLimit({
@@ -46,10 +49,7 @@ export const forgotPasswordLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:forgot:',
   }),
-  message: {
-    success: false,
-    message: 'لقد وصلت للحد الأقصى لمحاولات تغيير كلمة المرور يرجى المحاولة لاحقا'
-  }
+  handler: localizedHandler('common.rateLimit.forgotPassword'),
 });
 
 export const resendVerificationLimiter = rateLimit({
@@ -62,10 +62,7 @@ export const resendVerificationLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:resend-verify:',
   }),
-  message: {
-    success: false,
-    message: 'لقد طلبت رابط التأكيد مرات كتيرة. برجاء الانتظار شوية والمحاولة تاني.'
-  }
+  handler: localizedHandler('common.rateLimit.resendVerification'),
 });
 
 export const contactLimiter = rateLimit({
@@ -78,10 +75,7 @@ export const contactLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:contact:',
   }),
-  message: {
-    success: false,
-    message: 'لقد أرسلت رسايل كتير، حاول تاني بعد شوية'
-  }
+  handler: localizedHandler('common.rateLimit.contact'),
 });
 
 export const checkoutLimiter = rateLimit({
@@ -95,12 +89,8 @@ export const checkoutLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:checkout:',
   }),
-  message: {
-    success: false,
-    message: 'لقد حاولت الدفع مرات كتيرة. برجاء الانتظار شوية والمحاولة تاني.'
-  }
+  handler: localizedHandler('common.rateLimit.checkout'),
 });
-
 
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -112,8 +102,5 @@ export const globalLimiter = rateLimit({
     sendCommand: (...args) => redisClient.sendCommand(args),
     prefix: 'rl:global:',
   }),
-  message: {
-    success: false,
-    message: 'طلبات كتيرة جدًا من عنوانك، برجاء الانتظار شوية.'
-  }
+  handler: localizedHandler('common.rateLimit.global'),
 });

@@ -1,7 +1,7 @@
-import { bookSchema, editBookSchema } from '../../modules/book/book.schema.js';
+import { createBookSchema, createEditBookSchema } from '../../modules/book/book.schema.js';
 
 export const validateAdd = (req, res, next) => {
-  const result = bookSchema.safeParse(req.body);
+  const result = createBookSchema(req.t).safeParse(req.body);
   if (!result.success) {
     const fieldErrors = result.error.flatten().fieldErrors;
     return res.status(400).json({ success: false, errors: fieldErrors });
@@ -11,7 +11,7 @@ export const validateAdd = (req, res, next) => {
 };
 
 export const validateEdit = (req, res, next) => {
-  const result = editBookSchema.safeParse(req.body);
+  const result = createEditBookSchema(req.t).safeParse(req.body);
   if (!result.success) {
     const fieldErrors = result.error.flatten().fieldErrors;
     const errorMessage = Object.values(fieldErrors).flat().join(" - ");

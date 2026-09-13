@@ -97,7 +97,7 @@ export const markOrderFailed = async (orderId) => {
       data: { status: 'failed' },
       include: {
         items: { include: { book: true } },
-        user: { select: { id: true, name: true, email: true } }
+        user: { select: { id: true, name: true, email: true, preferred_lang: true } }
       }
     });
 

@@ -4,7 +4,7 @@ const requireAdmin = (req, res, next) => {
   } else {
     return res.status(403).json({
       success: false,
-      message: 'غير مصرح لك بالقيام بهذا الإجراء، هذه الصلاحية للأدمن فقط'
+      message: req.t('common.adminOnly')
     });
   }
 };

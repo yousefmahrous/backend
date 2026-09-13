@@ -17,6 +17,7 @@ model User {
   is_email_verified          Boolean   @default(false)
   verification_token         String?
   verification_token_expires DateTime?
+  preferred_lang         String    @default("ar")
 
   cart                   Cart?
   favorites              Favorite[]
@@ -29,10 +30,10 @@ model User {
 
 model Book {
   id               Int     @id @default(autoincrement())
-  title            String
+  title            Json
   isbn             String
   publisher_email  String
-  description      String
+  description      Json
   publisher        String
   category         String
   cover_url        String?

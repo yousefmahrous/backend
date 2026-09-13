@@ -12,16 +12,16 @@ import {
 
 const emailWorker = new Worker('email-queue', async (job) => {
   if (job.name === 'welcome-email') {
-    const { email, name } = job.data;
-    await sendWelcomeEmail(email, name);
+    const { email, name, lang } = job.data;
+    await sendWelcomeEmail(email, name, lang);
   }
   else if (job.name === 'verification-email') {
-    const { email, name, verifyLink } = job.data;
-    await sendVerificationEmail(email, name, verifyLink);
+    const { email, name, verifyLink, lang } = job.data;
+    await sendVerificationEmail(email, name, verifyLink, lang);
   }
   else if (job.name === 'reset-password-email') {
-    const { email, resetLink } = job.data;
-    await sendResetPasswordEmail(email, resetLink);
+    const { email, resetLink, lang } = job.data;
+    await sendResetPasswordEmail(email, resetLink, lang);
   }
   else if (job.name === 'contact-notification-email') {
     await sendContactNotificationEmail(job.data);

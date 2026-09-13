@@ -9,6 +9,7 @@ import sessionMiddleware from './core/config/session.config.js';
 import { init } from './core/config/socket.config.js';
 import v1Router from './routes/v1/index.js';
 import * as paymentService from './modules/payment/payment.service.js';
+import { i18nMiddleware } from './core/i18n/i18n.js';
 import './core/email.worker.js';
 
 const app = express();
@@ -20,6 +21,8 @@ app.use(
   })
 );
 
+app.use(cookieParser());
+app.use(i18nMiddleware);
 app.use(globalLimiter);
 
 const allowedOrigins = [
@@ -35,11 +38,11 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('غير مسموح بواسطة CORS'));
+        callback(new Error('Not allowed by CORS'));
       }
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-lang'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   })
 );
@@ -57,7 +60,6 @@ app.post(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(sessionMiddleware);
 
 app.use('/api/v1', v1Router);
@@ -67,7 +69,7 @@ app.use((err, req, res, next) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'حدث خطأ غير متوقع في السيرفر'
+    message: err.message || req.t?.('common.unexpectedError') || 'An unexpected server error occurred'
   });
 });
 

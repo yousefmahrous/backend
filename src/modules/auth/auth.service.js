@@ -11,45 +11,45 @@ import {
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
-const issueVerificationToken = async (userId, email, name) => {
+const issueVerificationToken = async (userId, email, name, lang = 'ar') => {
   const verificationToken = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
 
   await repository.saveVerificationToken(userId, verificationToken, expiresAt);
 
   const verifyLink = `${process.env.CLIENT_URL_DEV_4}/verify-email?token=${verificationToken}`;
-  await addVerificationEmailJob(email, name, verifyLink);
+  await addVerificationEmailJob(email, name, verifyLink, lang);
 };
 
-export const signup = async (data) => {
+export const signup = async (t, data, lang = 'ar') => {
   const existingUser = await repository.findUserByEmail(data.email);
   if (existingUser) {
-    throw new Error('الإيميل ده مستخدم قبل كده');
+    throw new Error(t('auth.emailInUse'));
   }
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(data.password, salt);
 
-  const newUser = await repository.createUser(data.name, data.email, hashedPassword);
+  const newUser = await repository.createUser(data.name, data.email, hashedPassword, lang);
 
-  await issueVerificationToken(newUser.id, data.email, data.name);
+  await issueVerificationToken(newUser.id, data.email, data.name, lang);
 
   return newUser;
 };
 
-export const login = async (data) => {
+export const login = async (t, data) => {
   const user = await repository.findUserByEmail(data.email);
   if (!user) {
-    throw new Error('الإيميل أو كلمة المرور غير صحيحة');
+    throw new Error(t('auth.invalidCredentials'));
   }
 
   const isMatch = await bcrypt.compare(data.password, user.password);
   if (!isMatch) {
-    throw new Error('الإيميل أو كلمة المرور غير صحيحة');
+    throw new Error(t('auth.invalidCredentials'));
   }
 
   if (!user.is_email_verified) {
-    const error = new Error('لازم تأكد بريدك الإلكتروني الأول قبل تسجيل الدخول');
+    const error = new Error(t('auth.emailNotVerified'));
     error.code = 'EMAIL_NOT_VERIFIED';
     throw error;
   }
@@ -64,10 +64,10 @@ export const login = async (data) => {
   };
 };
 
-export const verifyEmail = async (token) => {
+export const verifyEmail = async (t, token) => {
   const user = await repository.findUserByVerificationToken(token);
   if (!user) {
-    throw new Error('رابط التأكيد غير صالح أو انتهت صلاحيته');
+    throw new Error(t('auth.verifyTokenInvalid'));
   }
 
   if (user.is_email_verified) {
@@ -75,7 +75,7 @@ export const verifyEmail = async (token) => {
   }
 
   await repository.markEmailAsVerified(user.id);
-  await addWelcomeEmailJob(user.email, user.name);
+  await addWelcomeEmailJob(user.email, user.name, user.preferred_lang);
 
   return { name: user.name, email: user.email };
 };
@@ -86,7 +86,7 @@ export const resendVerification = async (email) => {
     return;
   }
 
-  await issueVerificationToken(user.id, user.email, user.name);
+  await issueVerificationToken(user.id, user.email, user.name, user.preferred_lang);
 };
 
 export const forgotPassword = async (email) => {
@@ -100,14 +100,14 @@ export const forgotPassword = async (email) => {
   await repository.saveResetToken(user.id, resetToken, expiresAt);
 
   const resetLink = `${process.env.CLIENT_URL_DEV_4}/reset-password?token=${resetToken}`;
-  await addResetPasswordEmailJob(email, resetLink);
+  await addResetPasswordEmailJob(email, resetLink, user.preferred_lang);
 };
 
-export const resetPassword = async (token, newPassword) => {
+export const resetPassword = async (t, token, newPassword) => {
 
   const user = await repository.findUserByResetToken(token);
   if (!user) {
-    throw new Error('الرابط غير صالح أو انتهت صلاحيته.');
+    throw new Error(t('auth.resetTokenInvalid'));
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -119,16 +119,16 @@ export const resetPassword = async (token, newPassword) => {
 
 };
 
-export const changePassword = async (userId, oldPassword, newPassword) => {
+export const changePassword = async (t, userId, oldPassword, newPassword) => {
 
   const user = await repository.findUserById(userId);
   if (!user) {
-    throw new Error('المستخدم غير موجود');
+    throw new Error(t('auth.userNotFound'));
   }
 
   const isMatch = await bcrypt.compare(oldPassword, user.password);
   if (!isMatch) {
-    throw new Error('كلمة المرور القديمة غير صحيحة');
+    throw new Error(t('auth.oldPasswordInvalid'));
   }
 
   const salt = await bcrypt.genSalt(10);

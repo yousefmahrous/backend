@@ -1,6 +1,7 @@
 import * as orderRepo from './order.repository.js';
+import { pickLocalized } from '../../core/i18n/localized.js';
 
-const serializeOrder = (order) => ({
+const serializeOrder = (order, lang) => ({
   id: order.id,
   status: order.status,
   total_amount: order.total_amount,
@@ -9,60 +10,60 @@ const serializeOrder = (order) => ({
   paid_at: order.paid_at,
   items: order.items.map((item) => ({
     book_id: item.book_id,
-    title: item.book.title,
+    title: pickLocalized(item.book.title, lang),
     quantity: item.quantity,
     unit_price: item.unit_price
   }))
 });
 
-export const getOrderForUser = async (orderId, userId) => {
+export const getOrderForUser = async (t, lang, orderId, userId) => {
   try {
     const order = await orderRepo.findOrderByIdForUser(orderId, userId);
 
     if (!order) {
-      return { success: false, status: 404, message: 'الأوردر غير موجود' };
+      return { success: false, status: 404, message: t('order.notFound') };
     }
 
-    return { success: true, status: 200, data: serializeOrder(order) };
+    return { success: true, status: 200, data: serializeOrder(order, lang) };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل بيانات الأوردر' };
+    return { success: false, status: 500, message: t('order.loadError') };
   }
 };
 
-export const getLatestOrderForUser = async (userId) => {
+export const getLatestOrderForUser = async (t, lang, userId) => {
   try {
     const order = await orderRepo.findLatestOrderByUser(userId);
 
     if (!order) {
-      return { success: false, status: 404, message: 'مفيش أي أوردر لسه' };
+      return { success: false, status: 404, message: t('order.noOrdersYet') };
     }
 
-    return { success: true, status: 200, data: serializeOrder(order) };
+    return { success: true, status: 200, data: serializeOrder(order, lang) };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل بيانات الأوردر' };
+    return { success: false, status: 500, message: t('order.loadError') };
   }
 };
 
-export const getOrdersForUser = async (userId) => {
+export const getOrdersForUser = async (t, lang, userId) => {
   try {
     const orders = await orderRepo.findOrdersByUser(userId);
-    return { success: true, status: 200, data: { items: orders.map(serializeOrder) } };
+    return { success: true, status: 200, data: { items: orders.map((order) => serializeOrder(order, lang)) } };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل الأوردرات' };
+    return { success: false, status: 500, message: t('order.loadListError') };
   }
 };
 
-const serializeOrderWithUser = (order) => ({
-  ...serializeOrder(order),
+const serializeOrderWithUser = (order, lang) => ({
+  ...serializeOrder(order, lang),
   user: order.user
     ? { id: order.user.id, name: order.user.name, email: order.user.email }
     : null
 });
 
-export const getAllOrdersAdmin = async (page = 1, limit = 20, status) => {
+export const getAllOrdersAdmin = async (t, lang, page = 1, limit = 20, status) => {
   try {
     const pageNumber = Math.max(1, parseInt(page) || 1);
     const limitNumber = Math.max(1, parseInt(limit) || 20);
@@ -75,7 +76,7 @@ export const getAllOrdersAdmin = async (page = 1, limit = 20, status) => {
       success: true,
       status: 200,
       data: {
-        items: orders.map(serializeOrderWithUser),
+        items: orders.map((order) => serializeOrderWithUser(order, lang)),
         pagination: {
           totalCount,
           totalPages,
@@ -88,6 +89,6 @@ export const getAllOrdersAdmin = async (page = 1, limit = 20, status) => {
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل الأوردرات' };
+    return { success: false, status: 500, message: t('order.loadListError') };
   }
 };

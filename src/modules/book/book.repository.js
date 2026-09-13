@@ -1,11 +1,16 @@
 import prisma from '../../core/db.js';
 
-export const getAllBooks = async (skip, take, search = "") => {
-  const whereCondition = search ? {
-    title: {
-      contains: search,
-    }
+export const getAllBooks = async (skip, take, search = "", category = "") => {
+  const searchCondition = search ? {
+    OR: [
+      { title: { path: ['ar'], string_contains: search } },
+      { title: { path: ['en'], string_contains: search } },
+    ]
   } : {};
+
+  const whereCondition = category
+    ? { ...searchCondition, category }
+    : searchCondition;
 
   const [books, totalCount] = await Promise.all([
     prisma.book.findMany({
@@ -88,6 +93,7 @@ export const updateBook = async (id, bookData) => {
     where: { id: parseInt(id) },
     data: {
       title: bookData.name,
+      description: bookData.adress,
       publisher_email: bookData.email,
       stock: bookData.stock,
       price: bookData.price
@@ -95,7 +101,6 @@ export const updateBook = async (id, bookData) => {
   });
   return updatedBook;
 };
-
 export const getPopularBooks = async (limit = 10) => {
   return prisma.book.findMany({
     orderBy: { popularity_score: 'desc' },

@@ -17,26 +17,26 @@ const serializeFavorites = (favorites) => ({
   itemsCount: favorites.length
 });
 
-export const getFavorites = async (userId) => {
+export const getFavorites = async (t, userId) => {
   try {
     const favorites = await favoriteRepo.getFavoritesByUser(userId);
     return { success: true, status: 200, data: serializeFavorites(favorites) };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء تحميل المفضلة' };
+    return { success: false, status: 500, message: t('favorite.loadError') };
   }
 };
 
-export const addFavorite = async (userId, bookId) => {
+export const addFavorite = async (t, userId, bookId) => {
   try {
     const book = await favoriteRepo.getBookById(bookId);
     if (!book) {
-      return { success: false, status: 404, message: 'الكتاب غير موجود' };
+      return { success: false, status: 404, message: t('favorite.bookNotFound') };
     }
 
     const existing = await favoriteRepo.findFavorite(userId, bookId);
     if (existing) {
-      return { success: false, status: 400, message: 'الكتاب موجود بالفعل في المفضلة' };
+      return { success: false, status: 400, message: t('favorite.alreadyExists') };
     }
 
     await favoriteRepo.addFavorite(userId, bookId);
@@ -46,19 +46,19 @@ export const addFavorite = async (userId, bookId) => {
       success: true,
       status: 201,
       data: serializeFavorites(updatedFavorites),
-      message: 'تم إضافة الكتاب للمفضلة'
+      message: t('favorite.addSuccess')
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء الإضافة للمفضلة' };
+    return { success: false, status: 500, message: t('favorite.addError') };
   }
 };
 
-export const removeFavorite = async (userId, bookId) => {
+export const removeFavorite = async (t, userId, bookId) => {
   try {
     const existing = await favoriteRepo.findFavorite(userId, bookId);
     if (!existing) {
-      return { success: false, status: 404, message: 'الكتاب مش موجود في المفضلة' };
+      return { success: false, status: 404, message: t('favorite.notInFavorites') };
     }
 
     await favoriteRepo.removeFavorite(userId, bookId);
@@ -68,10 +68,10 @@ export const removeFavorite = async (userId, bookId) => {
       success: true,
       status: 200,
       data: serializeFavorites(updatedFavorites),
-      message: 'تم حذف الكتاب من المفضلة'
+      message: t('favorite.removeSuccess')
     };
   } catch (err) {
     console.error(err);
-    return { success: false, status: 500, message: 'حدث خطأ أثناء الحذف من المفضلة' };
+    return { success: false, status: 500, message: t('favorite.removeError') };
   }
 };

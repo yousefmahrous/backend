@@ -9,28 +9,29 @@ router.use(authMiddleware);
 
 router.use((req, res, next) => {
   if (req.user.role === 'admin') {
-    return res.status(403).json({ success: false, message: 'العربية متاحة للعملاء فقط' });
+    return res.status(403).json({ success: false, message: req.t('cart.customersOnly') });
   }
   next();
 });
 
 router.get('/', async (req, res) => {
-  const { status, ...response } = await cartService.getCart(req.user.id);
+  const { status, ...response } = await cartService.getCart(req.t, req.user.id);
   res.status(status).json(response);
 });
 
 router.post('/items', doubleCsrfProtection, async (req, res) => {
   const { book_id } = req.body;
   if (!book_id) {
-    return res.status(400).json({ success: false, message: 'book_id مطلوب' });
+    return res.status(400).json({ success: false, message: req.t('cart.bookIdRequired') });
   }
-  const { status, ...response } = await cartService.addToCart(req.user.id, parseInt(book_id));
+  const { status, ...response } = await cartService.addToCart(req.t, req.user.id, parseInt(book_id));
   res.status(status).json(response);
 });
 
 router.patch('/items/:id', doubleCsrfProtection, async (req, res) => {
   const { quantity } = req.body;
   const { status, ...response } = await cartService.updateQuantity(
+    req.t,
     req.user.id,
     parseInt(req.params.id),
     parseInt(quantity)
@@ -39,7 +40,7 @@ router.patch('/items/:id', doubleCsrfProtection, async (req, res) => {
 });
 
 router.delete('/items/:id', doubleCsrfProtection, async (req, res) => {
-  const { status, ...response } = await cartService.removeFromCart(req.user.id, parseInt(req.params.id));
+  const { status, ...response } = await cartService.removeFromCart(req.t, req.user.id, parseInt(req.params.id));
   res.status(status).json(response);
 });
 
