@@ -24,6 +24,7 @@ model User {
   reviews                Review[]
   orders                 Order[]
   refundRequests         RefundRequest[]
+  tickets                Ticket[]
 
   @@map("users") 
 }
@@ -86,6 +87,32 @@ model RefundRequest {
   updated_at  DateTime  @updatedAt
 
   @@map("refund_requests")
+}
+
+model Ticket {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  subject    String
+  status     String    @default("opened")
+  messages   TicketMessage[]
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  closed_at  DateTime?
+
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id          Int      @id @default(autoincrement())
+  ticket_id   Int
+  ticket      Ticket   @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender_type String
+  sender_id   Int?
+  body        String
+  created_at  DateTime @default(now())
+
+  @@map("ticket_messages")
 }
 
 model OrderItem {
