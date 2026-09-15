@@ -7,6 +7,7 @@ import { globalLimiter } from './core/middlewares/rateLimiter.middleware.js';
 import helmet from 'helmet';
 import sessionMiddleware from './core/config/session.config.js';
 import { init } from './core/config/socket.config.js';
+import { registerTicketSocketHandlers } from './modules/ticket/ticket.socket.js';
 import v1Router from './routes/v1/index.js';
 import * as paymentService from './modules/payment/payment.service.js';
 import { i18nMiddleware } from './core/i18n/i18n.js';
@@ -77,6 +78,7 @@ const PORT = process.env.PORT;
 
 const server = http.createServer(app);
 init(server);
+registerTicketSocketHandlers();
 
 server.listen(PORT, () => {
   console.log(` السيرفر شغال بنجاح على الرابط: http://localhost:${PORT}`);
