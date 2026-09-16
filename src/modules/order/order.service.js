@@ -1,5 +1,6 @@
 import * as orderRepo from './order.repository.js';
 import { pickLocalized } from '../../core/i18n/localized.js';
+import logger from '../../core/logger.js';
 
 const serializeOrder = (order, lang) => ({
   id: order.id,
@@ -26,7 +27,7 @@ export const getOrderForUser = async (t, lang, orderId, userId) => {
 
     return { success: true, status: 200, data: serializeOrder(order, lang) };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('order.loadError') };
   }
 };
@@ -41,7 +42,7 @@ export const getLatestOrderForUser = async (t, lang, userId) => {
 
     return { success: true, status: 200, data: serializeOrder(order, lang) };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('order.loadError') };
   }
 };
@@ -51,7 +52,7 @@ export const getOrdersForUser = async (t, lang, userId) => {
     const orders = await orderRepo.findOrdersByUser(userId);
     return { success: true, status: 200, data: { items: orders.map((order) => serializeOrder(order, lang)) } };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('order.loadListError') };
   }
 };
@@ -88,7 +89,7 @@ export const getAllOrdersAdmin = async (t, lang, page = 1, limit = 20, status) =
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('order.loadListError') };
   }
 };

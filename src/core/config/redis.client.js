@@ -1,21 +1,25 @@
 import { createClient } from 'redis';
+import logger from '../logger.js';
+
+const redisUrl = process.env.REDIS_URL;
+
+const useTls = typeof redisUrl === 'string' && redisUrl.startsWith('rediss://');
 
 const redisClient = createClient({
-  url: process.env.REDIS_URL,
-  socket: {
-    tls: true,
-    rejectUnauthorized: false
-  }
+  url: redisUrl,
+  socket: useTls
+    ? { tls: true, rejectUnauthorized: false }
+    : {},
 });
 
-redisClient.on('error', (err) => console.error('خطأ في اتصال Redis:', err.message));
-redisClient.on('connect', () => console.log(' تم الاتصال بـ Upstash Redis بنجاح!'));
+redisClient.on('error', (err) => logger.error({ err }, 'Redis connection error'));
+redisClient.on('connect', () => logger.info('Connected to Redis'));
 
 (async () => {
   try {
     await redisClient.connect();
   } catch (err) {
-    console.error('فشل الاتصال بـ Redis:', err.message);
+    logger.error({ err }, 'Failed to connect to Redis');
   }
 })();
 

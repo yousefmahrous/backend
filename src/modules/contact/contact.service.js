@@ -1,5 +1,6 @@
 import * as contactRepo from './contact.repository.js';
 import { addContactNotificationEmailJob } from '../../core/email.queue.js';
+import logger from '../../core/logger.js';
 
 export const submitContactMessage = async (t, { name, email, subject, message }) => {
   try {
@@ -8,7 +9,7 @@ export const submitContactMessage = async (t, { name, email, subject, message })
     try {
       await addContactNotificationEmailJob({ name, email, subject, message });
     } catch (queueErr) {
-      console.error('فشل إضافة مهمة إيميل التواصل للطابور:', queueErr);
+      logger.error({ err: queueErr }, 'فشل إضافة مهمة إيميل التواصل للطابور');
     }
 
     return {
@@ -17,7 +18,7 @@ export const submitContactMessage = async (t, { name, email, subject, message })
       message: t('contact.sendSuccess')
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('contact.sendError') };
   }
 };

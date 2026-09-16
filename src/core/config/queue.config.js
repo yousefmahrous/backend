@@ -1,10 +1,12 @@
 import IORedis from 'ioredis';
 
-const queueConnection = new IORedis(process.env.REDIS_URL, {
+const redisUrl = process.env.REDIS_URL;
+
+const useTls = typeof redisUrl === 'string' && redisUrl.startsWith('rediss://');
+
+const queueConnection = new IORedis(redisUrl, {
   maxRetriesPerRequest: null,
-  tls: {
-    rejectUnauthorized: false
-  }
+  ...(useTls ? { tls: { rejectUnauthorized: false } } : {}),
 });
 
 export default queueConnection;

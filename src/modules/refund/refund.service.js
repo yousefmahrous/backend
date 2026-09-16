@@ -3,6 +3,7 @@ import * as refundRepo from './refund.repository.js';
 import { getIO } from '../../core/config/socket.config.js';
 import { addRefundStatusEmailJob } from '../../core/email.queue.js';
 import { pickLocalized } from '../../core/i18n/localized.js';
+import logger from '../../core/logger.js';
 
 const RETURN_WINDOW_DAYS = 14;
 
@@ -18,7 +19,7 @@ const queueRefundStatusEmail = async (request) => {
     try {
       await addRefundStatusEmailJob(request.user.email, request.user.name, request, request.user.preferred_lang);
     } catch (err) {
-      console.error('فشل جدولة إيميل حالة الاسترجاع:', err.message);
+      logger.error({ err: err }, 'فشل جدولة إيميل حالة الاسترجاع');
     }
   }
 };
@@ -102,7 +103,7 @@ export const requestRefund = async (t, lang, orderId, userId, reason) => {
       data: serializeRequest(request, lang)
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.submitError') };
   }
 };
@@ -112,7 +113,7 @@ export const getMyRefundRequests = async (t, lang, userId) => {
     const requests = await refundRepo.findRefundRequestsForUser(userId);
     return { success: true, status: 200, data: { items: requests.map((r) => serializeRequest(r, lang)) } };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.loadError') };
   }
 };
@@ -146,7 +147,7 @@ export const getAllRefundRequestsAdmin = async (t, lang, page = 1, limit = 20, s
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.loadError') };
   }
 };
@@ -171,7 +172,7 @@ export const approveRefundRequest = async (t, lang, id) => {
       data: serializeRequest(request, lang)
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.approveError') };
   }
 };
@@ -196,7 +197,7 @@ export const rejectRefundRequest = async (t, lang, id, adminNote) => {
       data: serializeRequest(request, lang)
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.rejectError') };
   }
 };
@@ -221,7 +222,7 @@ export const cancelAwaitingReturn = async (t, lang, id, adminNote) => {
       data: serializeRequest(request, lang)
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.cancelError') };
   }
 };
@@ -250,7 +251,7 @@ export const completeRefund = async (t, lang, id) => {
     try {
       await stripe.refunds.create({ payment_intent: existing.order.payment_intent_id });
     } catch (stripeErr) {
-      console.error('فشل تنفيذ الاسترجاع عبر Stripe:', stripeErr.message);
+      logger.error({ err: stripeErr }, 'فشل تنفيذ الاسترجاع عبر Stripe');
       return {
         success: false,
         status: 502,
@@ -269,7 +270,7 @@ export const completeRefund = async (t, lang, id) => {
       data: serializeRequest(result, lang)
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('refund.completeError') };
   }
 };

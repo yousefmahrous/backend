@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { pickLocalized } from '../i18n/localized.js';
 import { DEFAULT_LANG, isSupportedLang } from '../i18n/i18n.js';
+import logger from '../logger.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -50,7 +51,7 @@ export const sendWelcomeEmail = async (userEmail, userName, lang) => {
     });
 
   } catch (error) {
-    console.error('[Resend API Error]:', error);
+    logger.error({ err: error }, '[Resend API Error]');
   }
 };
 
@@ -96,7 +97,7 @@ export const sendVerificationEmail = async (userEmail, userName, verifyLink, lan
       `
     });
   } catch (error) {
-    console.error('[Resend API Error]:', error);
+    logger.error({ err: error }, '[Resend API Error]');
   }
 };
 
@@ -140,7 +141,7 @@ export const sendResetPasswordEmail = async (email, resetLink, lang) => {
       `
     });
   } catch (error) {
-    console.error('فشل إرسال إيميل إعادة التعيين:', error);
+    logger.error({ err: error }, 'فشل إرسال إيميل إعادة التعيين');
   }
 };
 
@@ -148,7 +149,7 @@ export const sendContactNotificationEmail = async ({ name, email, subject, messa
   try {
     const adminEmail = process.env.CONTACT_RECEIVER_EMAIL;
     if (!adminEmail) {
-      console.error('CONTACT_RECEIVER_EMAIL غير معرّف في متغيرات البيئة');
+      logger.error('CONTACT_RECEIVER_EMAIL غير معرّف في متغيرات البيئة');
       return;
     }
 
@@ -169,7 +170,7 @@ export const sendContactNotificationEmail = async ({ name, email, subject, messa
       `
     });
   } catch (error) {
-    console.error('فشل إرسال إيميل التواصل:', error);
+    logger.error({ err: error }, 'فشل إرسال إيميل التواصل');
   }
 };
 
@@ -251,7 +252,7 @@ export const sendPaymentSuccessEmail = async (userEmail, userName, order, lang) 
       })
     });
   } catch (error) {
-    console.error('[Resend API Error] فشل إرسال إيميل تأكيد الدفع:', error);
+    logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل تأكيد الدفع');
   }
 };
 
@@ -289,7 +290,7 @@ export const sendPaymentFailedEmail = async (userEmail, userName, order, lang) =
       })
     });
   } catch (error) {
-    console.error('[Resend API Error] فشل إرسال إيميل فشل الدفع:', error);
+    logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل فشل الدفع');
   }
 };
 
@@ -378,6 +379,6 @@ export const sendRefundStatusEmail = async (userEmail, userName, request, lang) 
       })
     });
   } catch (error) {
-    console.error('[Resend API Error] فشل إرسال إيميل حالة الاسترجاع:', error);
+    logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل حالة الاسترجاع');
   }
 };

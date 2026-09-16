@@ -2,6 +2,7 @@ import * as cartRepo from './cart.repository.js';
 import * as paymentService from '../payment/payment.service.js';
 import { getIO } from '../../core/config/socket.config.js';
 import redisClient from '../../core/config/redis.client.js';
+import logger from '../../core/logger.js';
 
 const serializeCartItem = (item) => ({
   id: item.id,
@@ -27,7 +28,7 @@ const emitBooksUpdated = () => {
   try {
     getIO().emit('books_updated');
   } catch (err) {
-    console.log('تخطي خطأ إرسال حدث تحديث الكتب عبر السوكيت');
+    logger.warn({ err }, 'تخطي خطأ إرسال حدث تحديث الكتب عبر السوكيت');
   }
 };
 
@@ -35,7 +36,7 @@ const invalidateBookCache = async (bookId) => {
   try {
     await redisClient.del(['books:all', `books:${bookId}`]);
   } catch (redisErr) {
-    console.log('تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية');
+    logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية');
   }
 };
 
@@ -45,7 +46,7 @@ export const getCart = async (t, userId) => {
     const cart = await cartRepo.getOrCreateCart(userId);
     return { success: true, status: 200, data: serializeCart(cart) };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('cart.loadError') };
   }
 };
@@ -76,7 +77,7 @@ export const addToCart = async (t, userId, bookId) => {
 
     return { success: true, status: 201, data: serializeCart(updatedCart), message: t('cart.addSuccess') };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('cart.addError') };
   }
 };
@@ -113,7 +114,7 @@ export const updateQuantity = async (t, userId, itemId, quantity) => {
 
     return { success: true, status: 200, data: serializeCart(updatedCart) };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('cart.updateError') };
   }
 };
@@ -134,7 +135,7 @@ export const removeFromCart = async (t, userId, itemId) => {
 
     return { success: true, status: 200, data: serializeCart(updatedCart), message: t('cart.removeSuccess') };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('cart.removeError') };
   }
 };

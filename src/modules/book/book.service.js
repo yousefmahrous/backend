@@ -1,6 +1,7 @@
 import * as bookRepo from './book.repository.js';
 import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
+import logger from '../../core/logger.js';
 
 
 const serializeBook = (book) => {
@@ -44,7 +45,7 @@ export const getAllBooks = async (t, page = 1, limit = 10, search = "", category
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('common.serverError') };
   }
 };
@@ -69,7 +70,7 @@ export const getBookById = async (t, id) => {
 
     return { success: true, status: 200, data: { user: serialized } };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('common.serverError') };
   }
 };
@@ -83,14 +84,14 @@ export const addBook = async (t, bookData) => {
         await redisClient.del('books:all');
       }
     } catch (redisErr) {
-      console.log("تخطي خطأ مسح الكاش من Redis أثناء الإضافة");
+      logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis أثناء الإضافة');
     }
 
     getIO().emit('books_updated');
 
     return { success: true, status: 201, message: t('book.added') };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('book.addError') };
   }
 };
@@ -114,7 +115,7 @@ export const deleteBook = async (t, id) => {
         message: t('book.deleteForeignKey')
       };
     }
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('book.deleteError') };
   }
 };
@@ -128,13 +129,13 @@ export const editBook = async (t, id, bookData) => {
         await redisClient.del(['books:all', `books:${id}`]);
       }
     } catch (redisErr) {
-      console.log("تخطي خطأ مسح الكاش من Redis");
+      logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis');
     }
     getIO().emit('books_updated');
     return { success: true, status: 200, message: t('book.updated') };
 
   } catch (err) {
-    console.error("خطأ الباك إند في التعديل:", err);
+    logger.error({ err: err }, 'خطأ الباك إند في التعديل');
 
     if (err.code === 'P2025') {
       return { success: false, status: 404, message: t('book.notFound') };
@@ -155,7 +156,7 @@ export const getPopularBooks = async (t, limit = 10) => {
       data: { users: books.map(serializeBook) }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('common.serverError') };
   }
 };

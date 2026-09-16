@@ -1,4 +1,5 @@
 import * as favoriteRepo from './favorite.repository.js';
+import logger from '../../core/logger.js';
 
 const serializeFavorite = (fav) => ({
   id: fav.id,
@@ -22,7 +23,7 @@ export const getFavorites = async (t, userId) => {
     const favorites = await favoriteRepo.getFavoritesByUser(userId);
     return { success: true, status: 200, data: serializeFavorites(favorites) };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('favorite.loadError') };
   }
 };
@@ -49,7 +50,7 @@ export const addFavorite = async (t, userId, bookId) => {
       message: t('favorite.addSuccess')
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('favorite.addError') };
   }
 };
@@ -71,7 +72,7 @@ export const removeFavorite = async (t, userId, bookId) => {
       message: t('favorite.removeSuccess')
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('favorite.removeError') };
   }
 };

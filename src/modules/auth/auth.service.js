@@ -8,6 +8,7 @@ import {
   addResetPasswordEmailJob,
   addVerificationEmailJob
 } from '../../core/email.queue.js';
+import logger from '../../core/logger.js';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -156,6 +157,6 @@ const destroyAllUserSessions = async (userId) => {
       }
     }
   } catch (error) {
-    console.error('حدث خطأ أثناء إلغاء جلسات المستخدم من Redis:', error);
+    logger.error({ err: error }, 'حدث خطأ أثناء إلغاء جلسات المستخدم من Redis');
   }
 };

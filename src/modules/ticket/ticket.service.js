@@ -1,5 +1,6 @@
 import * as ticketRepo from './ticket.repository.js';
 import { getIO } from '../../core/config/socket.config.js';
+import logger from '../../core/logger.js';
 
 const CLOSED_STATUSES = ['resolved'];
 
@@ -50,7 +51,7 @@ export const createTicket = async (t, lang, userId, subject, message) => {
       data: serializeTicket(ticket, { withMessages: true })
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('ticket.createError') };
   }
 };
@@ -60,7 +61,7 @@ export const getMyTickets = async (t, lang, userId) => {
     const tickets = await ticketRepo.findTicketsForUser(userId);
     return { success: true, status: 200, data: { items: tickets.map((tk) => serializeTicket(tk)) } };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('ticket.loadError') };
   }
 };
@@ -90,7 +91,7 @@ export const getAllTicketsAdmin = async (t, lang, page = 1, limit = 20, status) 
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('ticket.loadError') };
   }
 };
@@ -109,7 +110,7 @@ export const getTicketDetail = async (t, lang, ticketId, userId, isAdmin) => {
 
     return { success: true, status: 200, data: serializeTicket(ticket, { withMessages: true }) };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('ticket.loadError') };
   }
 };
@@ -142,7 +143,7 @@ export const sendMessage = async (t, lang, ticketId, senderId, body, isAdmin) =>
 
     return { success: true, status: 201, data: serialized };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('ticket.sendError') };
   }
 };
@@ -173,7 +174,7 @@ export const updateTicketStatus = async (t, lang, ticketId, status) => {
       data: serializeTicket(updated)
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('ticket.statusUpdateError') };
   }
 };

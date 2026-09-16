@@ -1,2 +1,29 @@
 node_modules
+npm-debug.log*
+.npm
+
+# secrets — never inside an image layer
 .env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.github
+
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# tests & dev-only tooling
+vitest.config.js
+coverage
+src/test
+**/*.test.js
+TESTING.md
+
+# local maintenance scripts (seed / simulate webhook / restock)
+scripts
+
+*.md
+!README.md

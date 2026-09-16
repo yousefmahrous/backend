@@ -6,6 +6,7 @@ import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
 import { addPaymentSuccessEmailJob, addPaymentFailedEmailJob } from '../../core/email.queue.js';
 import { pickLocalized } from '../../core/i18n/localized.js';
+import logger from '../../core/logger.js';
 
 const PENDING_ORDER_EXPIRY_MINUTES = 30;
 
@@ -102,7 +103,7 @@ export const createCheckoutSession = async (t, lang, userId) => {
 
     return { success: true, status: 200, data: { url: session.url } };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('payment.checkoutError') };
   }
 };
@@ -117,7 +118,7 @@ export const handleWebhookEvent = async (rawBody, signature) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error('فشل التحقق من توقيع الـ webhook:', err.message);
+    logger.error({ err: err }, 'فشل التحقق من توقيع الـ webhook');
     return { success: false, status: 400, message: 'توقيع غير صالح' };
   }
 

@@ -1,12 +1,13 @@
 import prisma from '../../core/db.js';
 import redisClient from '../../core/config/redis.client.js';
+import logger from '../../core/logger.js';
 
 const invalidateBooksCache = async (bookIds) => {
   try {
     const keys = [...new Set(bookIds)].map((id) => `books:${id}`);
     if (keys.length) await redisClient.del(keys);
   } catch (err) {
-    console.log('تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية بعد الاسترجاع');
+    logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية بعد الاسترجاع');
   }
 };
 

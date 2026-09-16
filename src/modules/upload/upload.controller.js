@@ -1,4 +1,5 @@
 import { generatePresignedUploadUrl } from '../../core/services/file.service.js';
+import logger from '../../core/logger.js';
 
 export const getUploadUrl = async (req, res) => {
   try {
@@ -15,7 +16,7 @@ export const getUploadUrl = async (req, res) => {
       data: result
     });
   } catch (error) {
-    console.error('Upload URL generation failed:', error);
+    logger.error({ err: error }, 'Upload URL generation failed');
     if (error.code === 'INVALID_FILE_TYPE') {
       return res.status(400).json({ success: false, message: error.message });
     }

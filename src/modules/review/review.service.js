@@ -1,4 +1,5 @@
 import * as reviewRepo from './review.repository.js';
+import logger from '../../core/logger.js';
 
 const serializeReview = (review) => ({
   id: review.id,
@@ -44,7 +45,7 @@ export const getReviewsForBook = async (t, bookId, page = 1, limit = 10) => {
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('review.serverError') };
   }
 };
@@ -77,7 +78,7 @@ export const addOrUpdateReview = async (t, userId, bookId, reviewData) => {
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('review.saveError') };
   }
 };
@@ -105,7 +106,7 @@ export const deleteReview = async (t, reviewId, userId, isAdmin) => {
       }
     };
   } catch (err) {
-    console.error(err);
+    logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('review.deleteError') };
   }
 };
