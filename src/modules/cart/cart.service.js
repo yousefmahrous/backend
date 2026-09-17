@@ -36,7 +36,7 @@ const invalidateBookCache = async (bookId) => {
   try {
     await redisClient.del(['books:all', `books:${bookId}`]);
   } catch (redisErr) {
-    logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية');
+    logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية');
   }
 };
 

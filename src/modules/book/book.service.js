@@ -62,9 +62,6 @@ export const getBookById = async (t, id) => {
       return { success: false, status: 404, message: t('book.notFound') };
     }
 
-    // category stays as the raw key here: this endpoint feeds both the public
-    // detail page (which translates it itself, see BookCard/books.$id.tsx) and
-    // the admin edit form (which needs the raw key to preselect the <Select>).
     const serialized = serializeBook(book);
     await redisClient.set(`books:${id}`, JSON.stringify(serialized), { EX: 3600 });
 
@@ -84,7 +81,7 @@ export const addBook = async (t, bookData) => {
         await redisClient.del('books:all');
       }
     } catch (redisErr) {
-      logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis أثناء الإضافة');
+      logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis أثناء الإضافة');
     }
 
     getIO().emit('books_updated');
@@ -129,7 +126,7 @@ export const editBook = async (t, id, bookData) => {
         await redisClient.del(['books:all', `books:${id}`]);
       }
     } catch (redisErr) {
-      logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis');
+      logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis');
     }
     getIO().emit('books_updated');
     return { success: true, status: 200, message: t('book.updated') };

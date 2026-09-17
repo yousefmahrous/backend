@@ -229,4 +229,90 @@ describe('refund.service', () => {
       expect(result).toMatchObject({ success: true, status: 200 });
     });
   });
+
+  describe('rejectRefundRequest', () => {
+    it('returns 404 when the request does not exist', async () => {
+      refundRepo.findRefundRequestById.mockResolvedValue(null);
+
+      const result = await refundService.rejectRefundRequest(t, 'ar', 1, 'not eligible');
+
+      expect(result).toEqual({ success: false, status: 404, message: 'refund.requestNotFound' });
+      expect(refundRepo.rejectRefundRequest).not.toHaveBeenCalled();
+    });
+
+    it('refuses to reject a request that already left the "pending" state', async () => {
+      refundRepo.findRefundRequestById.mockResolvedValue({ id: 1, status: 'awaiting_return' });
+
+      const result = await refundService.rejectRefundRequest(t, 'ar', 1, 'not eligible');
+
+      expect(result).toEqual({ success: false, status: 400, message: 'refund.alreadyReviewed' });
+      expect(refundRepo.rejectRefundRequest).not.toHaveBeenCalled();
+    });
+
+    it('rejects a pending request with the given admin note and queues the status email', async () => {
+      refundRepo.findRefundRequestById.mockResolvedValue({ id: 1, status: 'pending' });
+      refundRepo.rejectRefundRequest.mockResolvedValue({
+        id: 1,
+        status: 'rejected',
+        admin_note: 'not eligible',
+        user: { email: 'a@b.com', name: 'Ali', preferred_lang: 'ar' },
+      });
+
+      const result = await refundService.rejectRefundRequest(t, 'ar', 1, 'not eligible');
+
+      expect(refundRepo.rejectRefundRequest).toHaveBeenCalledWith(1, 'not eligible');
+      expect(result).toMatchObject({ success: true, status: 200, message: 'refund.rejectedMessage' });
+    });
+
+    it('returns a 500 when the repository throws unexpectedly', async () => {
+      refundRepo.findRefundRequestById.mockRejectedValue(new Error('db down'));
+
+      const result = await refundService.rejectRefundRequest(t, 'ar', 1, 'not eligible');
+
+      expect(result).toEqual({ success: false, status: 500, message: 'refund.rejectError' });
+    });
+  });
+
+  describe('cancelAwaitingReturn', () => {
+    it('returns 404 when the request does not exist', async () => {
+      refundRepo.findRefundRequestById.mockResolvedValue(null);
+
+      const result = await refundService.cancelAwaitingReturn(t, 'ar', 1, 'buyer kept the item');
+
+      expect(result).toEqual({ success: false, status: 404, message: 'refund.requestNotFound' });
+      expect(refundRepo.cancelAwaitingReturn).not.toHaveBeenCalled();
+    });
+
+    it('refuses to cancel a request that is not currently "awaiting_return"', async () => {
+      refundRepo.findRefundRequestById.mockResolvedValue({ id: 1, status: 'pending' });
+
+      const result = await refundService.cancelAwaitingReturn(t, 'ar', 1, 'buyer kept the item');
+
+      expect(result).toEqual({ success: false, status: 400, message: 'refund.notAwaitingReturn' });
+      expect(refundRepo.cancelAwaitingReturn).not.toHaveBeenCalled();
+    });
+
+    it('cancels an "awaiting_return" request with the given admin note and queues the status email', async () => {
+      refundRepo.findRefundRequestById.mockResolvedValue({ id: 1, status: 'awaiting_return' });
+      refundRepo.cancelAwaitingReturn.mockResolvedValue({
+        id: 1,
+        status: 'cancelled',
+        admin_note: 'buyer kept the item',
+        user: { email: 'a@b.com', name: 'Ali', preferred_lang: 'ar' },
+      });
+
+      const result = await refundService.cancelAwaitingReturn(t, 'ar', 1, 'buyer kept the item');
+
+      expect(refundRepo.cancelAwaitingReturn).toHaveBeenCalledWith(1, 'buyer kept the item');
+      expect(result).toMatchObject({ success: true, status: 200, message: 'refund.cancelledMessage' });
+    });
+
+    it('returns a 500 when the repository throws unexpectedly', async () => {
+      refundRepo.findRefundRequestById.mockRejectedValue(new Error('db down'));
+
+      const result = await refundService.cancelAwaitingReturn(t, 'ar', 1, 'buyer kept the item');
+
+      expect(result).toEqual({ success: false, status: 500, message: 'refund.cancelError' });
+    });
+  });
 });
