@@ -11,7 +11,7 @@ import orderRoutes from './order.routes.js';
 import refundRoutes from './refund.routes.js';
 import ticketRoutes from './ticket.routes.js';
 import csrfRoutes from './csrf.routes.js';
-import vendorRoutes from './vendor.routes';
+import vendorRoutes from './vendor.routes.js';
 
 
 const router = express.Router();
