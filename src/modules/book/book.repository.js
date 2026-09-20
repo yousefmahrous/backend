@@ -1,4 +1,5 @@
 import prisma from '../../core/db.js';
+import { getPlatformVendorId } from '../vendor/vendor.repository.js';
 
 export const getAllBooks = async (skip, take, search = "", category = "") => {
   const searchCondition = search ? {
@@ -42,7 +43,8 @@ export const getBookByEmail = async (email) => {
   return book;
 };
 
-export const createBook = async (bookData) => {
+export const createBook = async (bookData, vendorId) => {
+  const ownerVendorId = vendorId ?? (await getPlatformVendorId());
   let coverUrl = null;
 
   if (bookData.avatar_key) {
@@ -62,6 +64,7 @@ export const createBook = async (bookData) => {
       price: bookData.price,
       cover_key: bookData.avatar_key || null,
       cover_url: coverUrl,
+      vendor_id: ownerVendorId,
     }
   });
 

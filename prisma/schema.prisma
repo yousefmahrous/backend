@@ -25,8 +25,9 @@ model User {
   orders                 Order[]
   refundRequests         RefundRequest[]
   tickets                Ticket[]
+  vendor                 Vendor?
 
-  @@map("users") 
+  @@map("users")
 }
 
 model Book {
@@ -47,12 +48,41 @@ model Book {
   rating_average   Float   @default(0)
   reviews_count    Int     @default(0)
 
+  vendor_id        Int
+  vendor           Vendor  @relation(fields: [vendor_id], references: [id], onDelete: Restrict)
+
   cartItems        CartItem[]
   favorites        Favorite[]
   reviews          Review[]
   orderItems       OrderItem[]
 
+  @@index([vendor_id])
   @@map("books")
+}
+
+model Vendor {
+  id             Int      @id @default(autoincrement())
+  owner_id       Int?     @unique
+  owner          User?    @relation(fields: [owner_id], references: [id], onDelete: SetNull)
+  store_name     String
+  slug           String   @unique
+  status         String   @default("pending")
+  is_platform    Boolean  @default(false)
+  commission_bps Int?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  books          Book[]
+
+  @@map("vendors")
+}
+
+model PlatformSetting {
+  key        String   @id
+  value      Json
+  updated_at DateTime @updatedAt
+
+  @@map("platform_settings")
 }
 
 model Order {

@@ -1,7 +1,3 @@
-// Seeds a fresh database with everything the Playwright e2e suite expects:
-// the two test accounts referenced in e2e/fixtures/test-users.ts, and a
-// small catalog of books to browse/add-to-cart/checkout. Safe to run
-// against an already-seeded database — everything is an upsert.
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import prisma from '../src/core/db.js';
@@ -62,12 +58,14 @@ async function main() {
   const admin = await upsertUser({ ...ADMIN, role: 'admin' });
   console.log(`Seeded users: customer#${customer.id}, admin#${admin.id}`);
 
+  const platformVendor = await prisma.vendor.findFirstOrThrow({ where: { is_platform: true } });
+
   for (const book of BOOKS) {
     const existing = await prisma.book.findFirst({ where: { isbn: book.isbn } });
     if (existing) {
       await prisma.book.update({ where: { id: existing.id }, data: { stock: book.stock } });
     } else {
-      await prisma.book.create({ data: book });
+      await prisma.book.create({ data: { ...book, vendor_id: platformVendor.id } });
     }
   }
   const bookCount = await prisma.book.count();
