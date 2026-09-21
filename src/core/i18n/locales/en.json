@@ -167,5 +167,25 @@
       "history": "History",
       "kids": "Kids"
     }
+  },
+  "vendor": {
+    "applied": "Your application has been submitted and is awaiting review",
+    "applyError": "An error occurred while submitting your application",
+    "alreadyExists": "You already have a store or a pending application",
+    "adminCannotApply": "Admin accounts cannot apply as vendors",
+    "loadError": "An error occurred while loading vendors",
+    "invalidId": "Invalid vendor ID",
+    "notFound": "Vendor not found",
+    "platformImmutable": "The store's own vendor cannot be changed",
+    "invalidTransition": "This status change is not allowed",
+    "statusConflict": "The vendor status was changed by someone else, please refresh and try again",
+    "statusUpdated": "Vendor status updated successfully",
+    "updateError": "An error occurred while updating the vendor status",
+    "validation": {
+      "storeNameRequired": "Store name is required",
+      "storeNameMin": "Store name must be at least 3 characters",
+      "storeNameMax": "Store name must be at most 60 characters",
+      "statusInvalid": "Invalid vendor status"
+    }
   }
 }

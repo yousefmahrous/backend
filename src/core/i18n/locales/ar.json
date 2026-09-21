@@ -129,10 +129,12 @@
     "completedMessage": "تم تنفيذ الاسترجاع بنجاح، وهترجع الفلوس للعميل خلال أيام حسب بنكه",
     "completeError": "حدث خطأ أثناء تنفيذ الاسترجاع",
     "invalidRequestId": "رقم الطلب غير صالح"
-  },"payment": {
+  },
+  "payment": {
     "cartEmpty": "العربية فاضية، مينفعش تكمل دفع",
     "checkoutError": "حدث خطأ أثناء إنشاء جلسة الدفع"
-  },"upload": {
+  },
+  "upload": {
     "missingFields": "يجب إرسال fileName و fileType",
     "invalidFileType": "نوع الملف غير مسموح به. الأنواع المسموحة: JPEG, PNG, WEBP فقط",
     "generateUrlError": "حدث خطأ أثناء توليد رابط الرفع"
@@ -164,6 +166,26 @@
       "science": "علمي",
       "history": "تاريخي",
       "kids": "أطفال"
+    }
+  },
+  "vendor": {
+    "applied": "تم إرسال طلبك بنجاح وهو قيد المراجعة",
+    "applyError": "حدث خطأ أثناء إرسال الطلب",
+    "alreadyExists": "لديك متجر بالفعل أو طلب قيد المراجعة",
+    "adminCannotApply": "حسابات الأدمن لا يمكنها التقديم كبائع",
+    "loadError": "حدث خطأ أثناء تحميل البائعين",
+    "invalidId": "رقم البائع غير صالح",
+    "notFound": "البائع غير موجود",
+    "platformImmutable": "لا يمكن تعديل متجر المنصة نفسه",
+    "invalidTransition": "تغيير الحالة هذا غير مسموح",
+    "statusConflict": "تم تغيير حالة البائع من شخص آخر، حدّث الصفحة وحاول مرة أخرى",
+    "statusUpdated": "تم تحديث حالة البائع بنجاح",
+    "updateError": "حدث خطأ أثناء تحديث حالة البائع",
+    "validation": {
+      "storeNameRequired": "اسم المتجر مطلوب",
+      "storeNameMin": "اسم المتجر يجب ألا يقل عن 3 أحرف",
+      "storeNameMax": "اسم المتجر يجب ألا يزيد عن 60 حرفًا",
+      "statusInvalid": "حالة البائع غير صالحة"
     }
   }
 }

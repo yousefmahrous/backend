@@ -27,7 +27,7 @@ model User {
   tickets                Ticket[]
   vendor                 Vendor?
 
-  @@map("users")
+  @@map("users") 
 }
 
 model Book {
@@ -38,6 +38,8 @@ model Book {
   description      Json
   publisher        String
   category         String
+  category_id      Int?
+  categoryRef      Category? @relation(fields: [category_id], references: [id], onDelete: Restrict)
   cover_url        String?
   cover_key        String?
   price            Int     @default(0)
@@ -57,7 +59,22 @@ model Book {
   orderItems       OrderItem[]
 
   @@index([vendor_id])
+  @@index([category_id])
   @@map("books")
+}
+
+model Category {
+  id         Int        @id @default(autoincrement())
+  slug       String     @unique
+  name       Json
+  parent_id  Int?
+  parent     Category?  @relation("CategoryTree", fields: [parent_id], references: [id], onDelete: Restrict)
+  children   Category[] @relation("CategoryTree")
+  products   Book[]
+  created_at DateTime   @default(now())
+
+  @@index([parent_id])
+  @@map("categories")
 }
 
 model Vendor {
