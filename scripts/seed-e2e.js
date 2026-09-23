@@ -58,14 +58,20 @@ async function main() {
   const admin = await upsertUser({ ...ADMIN, role: 'admin' });
   console.log(`Seeded users: customer#${customer.id}, admin#${admin.id}`);
 
+  // Books must belong to a vendor now. The migration creates the store's own
+  // vendor, so the seed just looks it up.
   const platformVendor = await prisma.vendor.findFirstOrThrow({ where: { is_platform: true } });
+  const categories = await prisma.category.findMany();
+  const categoryIdBySlug = Object.fromEntries(categories.map((c) => [c.slug, c.id]));
 
   for (const book of BOOKS) {
     const existing = await prisma.book.findFirst({ where: { isbn: book.isbn } });
     if (existing) {
       await prisma.book.update({ where: { id: existing.id }, data: { stock: book.stock } });
     } else {
-      await prisma.book.create({ data: { ...book, vendor_id: platformVendor.id } });
+      await prisma.book.create({
+        data: { ...book, vendor_id: platformVendor.id, category_id: categoryIdBySlug[book.category] }
+      });
     }
   }
   const bookCount = await prisma.book.count();

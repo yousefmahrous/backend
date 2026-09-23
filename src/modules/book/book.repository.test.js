@@ -65,6 +65,14 @@ describe('book.repository createBook', () => {
     });
   });
 
+  it('stores the category id next to the old category text', async () => {
+    await bookRepo.createBook({ ...bookData, category_id: 4 }, 42);
+
+    const { data } = prisma.book.create.mock.calls[0][0];
+    expect(data.category).toBe('novels');
+    expect(data.category_id).toBe(4);
+  });
+
   it('does not create the book when the platform vendor is missing', async () => {
     vendorRepo.getPlatformVendorId.mockRejectedValue(new Error('PLATFORM_VENDOR_MISSING'));
 

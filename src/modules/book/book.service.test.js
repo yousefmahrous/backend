@@ -10,6 +10,10 @@ vi.mock('./book.repository.js', () => ({
   getPopularBooks: vi.fn(),
 }));
 
+vi.mock('../category/category.repository.js', () => ({
+  findCategoryBySlug: vi.fn(),
+}));
+
 vi.mock('../../core/config/redis.client.js', () => ({
   default: { get: vi.fn(), set: vi.fn(), del: vi.fn() },
 }));
@@ -20,6 +24,7 @@ vi.mock('../../core/config/socket.config.js', () => ({
 }));
 
 const bookRepo = await import('./book.repository.js');
+const categoryRepo = await import('../category/category.repository.js');
 const redisClient = (await import('../../core/config/redis.client.js')).default;
 const bookService = await import('./book.service.js');
 
@@ -46,6 +51,7 @@ describe('book.service', () => {
     mockEmit.mockClear();
     redisClient.get.mockResolvedValue(null);
     redisClient.del.mockResolvedValue(undefined);
+    categoryRepo.findCategoryBySlug.mockResolvedValue({ id: 3, slug: 'novels' });
   });
 
   describe('getAllBooks', () => {
@@ -111,18 +117,41 @@ describe('book.service', () => {
 
   describe('addBook', () => {
     it('creates the book, invalidates the "all books" cache, and notifies over the socket', async () => {
-      const result = await bookService.addBook(t, { title: 'New' });
+      const result = await bookService.addBook(t, { title: 'New', category: 'novels' });
 
-      expect(bookRepo.createBook).toHaveBeenCalledWith({ title: 'New' });
+      expect(bookRepo.createBook).toHaveBeenCalledWith({ title: 'New', category: 'novels', category_id: 3 });
       expect(redisClient.del).toHaveBeenCalledWith('books:all');
       expect(mockEmit).toHaveBeenCalledWith('books_updated');
       expect(result).toEqual({ success: true, status: 201, message: 'book.added' });
     });
 
+    it('looks the category up by its slug and links the book to it by id', async () => {
+      categoryRepo.findCategoryBySlug.mockResolvedValue({ id: 8, slug: 'kids' });
+
+      await bookService.addBook(t, { title: 'New', category: 'kids' });
+
+      expect(categoryRepo.findCategoryBySlug).toHaveBeenCalledWith('kids');
+      expect(bookRepo.createBook.mock.calls[0][0].category_id).toBe(8);
+    });
+
+    it('rejects an unknown category with a 400 on the category field and creates nothing', async () => {
+      categoryRepo.findCategoryBySlug.mockResolvedValue(null);
+
+      const result = await bookService.addBook(t, { title: 'New', category: 'hacked' });
+
+      expect(result).toEqual({
+        success: false,
+        status: 400,
+        errors: { category: ['book.validation.categoryInvalid'] },
+      });
+      expect(bookRepo.createBook).not.toHaveBeenCalled();
+      expect(mockEmit).not.toHaveBeenCalled();
+    });
+
     it('returns a 500 when the repository throws unexpectedly', async () => {
       bookRepo.createBook.mockRejectedValue(new Error('db down'));
 
-      const result = await bookService.addBook(t, { title: 'New' });
+      const result = await bookService.addBook(t, { title: 'New', category: 'novels' });
 
       expect(result).toEqual({ success: false, status: 500, message: 'book.addError' });
     });
@@ -130,7 +159,7 @@ describe('book.service', () => {
     it('still succeeds when Redis fails to invalidate the cache (soft failure, not fatal)', async () => {
       redisClient.del.mockRejectedValue(new Error('redis down'));
 
-      const result = await bookService.addBook(t, { title: 'New' });
+      const result = await bookService.addBook(t, { title: 'New', category: 'novels' });
 
       expect(result).toEqual({ success: true, status: 201, message: 'book.added' });
     });

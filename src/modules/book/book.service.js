@@ -1,4 +1,5 @@
 import * as bookRepo from './book.repository.js';
+import * as categoryRepo from '../category/category.repository.js';
 import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
 import logger from '../../core/logger.js';
@@ -74,7 +75,16 @@ export const getBookById = async (t, id) => {
 
 export const addBook = async (t, bookData) => {
   try {
-    await bookRepo.createBook(bookData);
+    const category = await categoryRepo.findCategoryBySlug(bookData.category);
+    if (!category) {
+      return {
+        success: false,
+        status: 400,
+        errors: { category: [t('book.validation.categoryInvalid')] }
+      };
+    }
+
+    await bookRepo.createBook({ ...bookData, category_id: category.id });
 
     try {
       if (typeof redisClient !== 'undefined') {

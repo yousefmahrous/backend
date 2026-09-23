@@ -60,6 +60,7 @@ export const createBook = async (bookData, vendorId) => {
       description: bookData.adress,
       publisher: bookData.centre,
       category: bookData.category,
+      category_id: bookData.category_id,
       stock: bookData.stock,
       price: bookData.price,
       cover_key: bookData.avatar_key || null,

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { BOOK_CATEGORY_KEYS } from './book.constants.js';
 
 const bilingualField = (t, label, min) =>
   z.object({
@@ -25,9 +24,9 @@ export const createBookSchema = (t) =>
       .trim()
       .min(2, t('book.validation.publisherMin')),
 
-    category: z.enum(BOOK_CATEGORY_KEYS, {
-      errorMap: () => ({ message: t('book.validation.categoryInvalid') })
-    }),
+    category: z.string({ message: t('book.validation.categoryInvalid') })
+      .trim()
+     .min(1, t('book.validation.categoryInvalid')),
 
     stock: z.coerce.number({ invalid_type_error: t('book.validation.stockType') })
       .int(t('book.validation.stockInt'))

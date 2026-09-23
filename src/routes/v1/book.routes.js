@@ -4,13 +4,12 @@ import { validateAdd, validateEdit } from '../../core/middlewares/validation.js'
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
 import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
-import { BOOK_CATEGORY_KEYS } from '../../modules/book/book.constants.js';
 
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   const { page, limit, search, category } = req.query;
-  const safeCategory = BOOK_CATEGORY_KEYS.includes(category) ? category : '';
+  const safeCategory = typeof category === 'string' ? category : '';
   const { status, ...response } = await bookService.getAllBooks(req.t, page, limit, search, safeCategory);
   res.status(status).json(response);
 });
