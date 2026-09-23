@@ -57,10 +57,30 @@ model Book {
   favorites        Favorite[]
   reviews          Review[]
   orderItems       OrderItem[]
+  variants         ProductVariant[]
 
   @@index([vendor_id])
   @@index([category_id])
   @@map("books")
+}
+
+model ProductVariant {
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  product    Book     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  sku        String?
+  barcode    String?
+  options    Json     @default("{}")
+  price      Int
+  stock      Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  cartItems  CartItem[]
+
+  @@unique([product_id, sku])
+  @@index([product_id])
+  @@map("product_variants")
 }
 
 model Category {
@@ -186,15 +206,19 @@ model Cart {
 }
 
 model CartItem {
-  id         Int      @id @default(autoincrement())
+  id         Int             @id @default(autoincrement())
   cart_id    Int
-  cart       Cart     @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  cart       Cart            @relation(fields: [cart_id], references: [id], onDelete: Cascade)
   book_id    Int
-  book       Book     @relation(fields: [book_id], references: [id], onDelete: Cascade)
-  quantity   Int      @default(1)
-  created_at DateTime @default(now())
+  book       Book            @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  variant_id Int?
+  variant    ProductVariant? @relation(fields: [variant_id], references: [id], onDelete: Cascade)
+  quantity   Int             @default(1)
+  created_at DateTime        @default(now())
 
   @@unique([cart_id, book_id])
+  @@unique([cart_id, variant_id])
+  @@index([variant_id])
   @@map("cart_items")
 }
 
