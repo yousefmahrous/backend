@@ -40,6 +40,9 @@ model Book {
   category         String
   category_id      Int?
   categoryRef      Category? @relation(fields: [category_id], references: [id], onDelete: Restrict)
+  brand            String?
+  attributes       Json?
+  status           String  @default("published")
   cover_url        String?
   cover_key        String?
   price            Int     @default(0)
@@ -61,6 +64,7 @@ model Book {
 
   @@index([vendor_id])
   @@index([category_id])
+  @@index([status])
   @@map("books")
 }
 

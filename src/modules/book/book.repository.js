@@ -9,16 +9,20 @@ export const getAllBooks = async (skip, take, search = "", category = "") => {
     ]
   } : {};
 
-  const whereCondition = category
-    ? { ...searchCondition, category }
-    : searchCondition;
+  const whereCondition = {
+    ...searchCondition,
+    ...(category ? { category } : {}),
+    status: 'published',
+    vendor: { status: 'active' }
+  };
 
   const [books, totalCount] = await Promise.all([
     prisma.book.findMany({
       where: whereCondition,
       skip: skip,
       take: take,
-      orderBy: { id: 'desc' }
+      orderBy: { id: 'desc' },
+      include: { variants: true }
     }),
     prisma.book.count({
       where: whereCondition
@@ -30,7 +34,8 @@ export const getAllBooks = async (skip, take, search = "", category = "") => {
 
 export const getBookById = async (id) => {
   const book = await prisma.book.findUnique({
-    where: { id: parseInt(id) }
+    where: { id: parseInt(id) },
+    include: { variants: true }
   });
   return book;
 };
@@ -52,21 +57,34 @@ export const createBook = async (bookData, vendorId) => {
     coverUrl = `https://${process.env.B2_BUCKET_NAME}.${endpointHost}/${bookData.avatar_key}`;
   }
 
-  const newBook = await prisma.book.create({
-    data: {
-      title: bookData.name,
-      isbn: bookData.number,
-      publisher_email: bookData.email,
-      description: bookData.adress,
-      publisher: bookData.centre,
-      category: bookData.category,
-      category_id: bookData.category_id,
-      stock: bookData.stock,
-      price: bookData.price,
-      cover_key: bookData.avatar_key || null,
-      cover_url: coverUrl,
-      vendor_id: ownerVendorId,
-    }
+  const newBook = await prisma.$transaction(async (tx) => {
+    const book = await tx.book.create({
+      data: {
+        title: bookData.name,
+        isbn: bookData.number,
+        publisher_email: bookData.email,
+        description: bookData.adress,
+        publisher: bookData.centre,
+        category: bookData.category,
+        category_id: bookData.category_id,
+        stock: bookData.stock,
+        price: bookData.price,
+        cover_key: bookData.avatar_key || null,
+        cover_url: coverUrl,
+        vendor_id: ownerVendorId,
+      }
+    });
+
+    await tx.productVariant.create({
+      data: {
+        product_id: book.id,
+        barcode: bookData.number,
+        price: bookData.price,
+        stock: bookData.stock
+      }
+    });
+
+    return book;
   });
 
   return newBook;
@@ -93,21 +111,35 @@ export const checkEmailForOtherBook = async (email, id) => {
 };
 
 export const updateBook = async (id, bookData) => {
-  const updatedBook = await prisma.book.update({
-    where: { id: parseInt(id) },
-    data: {
-      title: bookData.name,
-      description: bookData.adress,
-      publisher_email: bookData.email,
-      stock: bookData.stock,
-      price: bookData.price
-    }
+  const bookId = parseInt(id);
+
+  const updatedBook = await prisma.$transaction(async (tx) => {
+    const book = await tx.book.update({
+      where: { id: bookId },
+      data: {
+        title: bookData.name,
+        description: bookData.adress,
+        publisher_email: bookData.email,
+        stock: bookData.stock,
+        price: bookData.price
+      }
+    });
+
+    await tx.productVariant.updateMany({
+      where: { product_id: bookId },
+      data: { stock: bookData.stock, price: bookData.price }
+    });
+
+    return book;
   });
+
   return updatedBook;
 };
 export const getPopularBooks = async (limit = 10) => {
   return prisma.book.findMany({
+    where: { status: 'published', vendor: { status: 'active' } },
     orderBy: { popularity_score: 'desc' },
-    take: limit
+    take: limit,
+    include: { variants: true }
   });
 };

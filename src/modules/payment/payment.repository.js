@@ -24,7 +24,7 @@ export const cancelOrder = async (orderId) => {
 export const createPendingOrderFromCart = async (userId, cart) => {
   return prisma.$transaction(async (tx) => {
     const totalAmount = cart.items.reduce(
-      (sum, item) => sum + item.book.price * item.quantity,
+      (sum, item) => sum + item.variant.price * item.quantity,
       0
     );
 
@@ -37,7 +37,7 @@ export const createPendingOrderFromCart = async (userId, cart) => {
           create: cart.items.map((item) => ({
             book_id: item.book_id,
             quantity: item.quantity,
-            unit_price: item.book.price
+            unit_price: item.variant.price
           }))
         }
       },
@@ -122,8 +122,8 @@ export const markOrderFailed = async (orderId) => {
           await tx.cartItem.delete({ where: { id: cartItem.id } });
         }
 
-        await tx.book.update({
-          where: { id: item.book_id },
+        await tx.productVariant.updateMany({
+          where: { product_id: item.book_id },
           data: { stock: { increment: qtyToRelease } }
         });
       }

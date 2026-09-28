@@ -7,7 +7,7 @@ export const getOrCreateCart = async (userId) => {
     create: { user_id: userId },
     include: {
       items: {
-        include: { book: true },
+        include: { variant: { include: { product: true } } },
         orderBy: { created_at: 'desc' }
       }
     }
@@ -15,27 +15,32 @@ export const getOrCreateCart = async (userId) => {
   return cart;
 };
 
-
-export const reserveAndAddItem = async (cartId, bookId, quantity = 1) => {
+export const reserveAndAddItem = async (cartId, variantId, quantity = 1) => {
   return prisma.$transaction(async (tx) => {
-    const result = await tx.book.updateMany({
-      where: { id: bookId, stock: { gte: quantity } },
-      data: {
-        stock: { decrement: quantity },
-        cart_adds_count: { increment: 1 },
-        popularity_score: { increment: 2 }
-      }
+    const result = await tx.productVariant.updateMany({
+      where: { id: variantId, stock: { gte: quantity } },
+      data: { stock: { decrement: quantity } }
     });
 
     if (result.count === 0) {
       throw new Error('OUT_OF_STOCK');
     }
 
+    const variant = await tx.productVariant.findUnique({ where: { id: variantId } });
+
+    await tx.book.update({
+      where: { id: variant.product_id },
+      data: {
+        cart_adds_count: { increment: 1 },
+        popularity_score: { increment: 2 }
+      }
+    });
+
     const item = await tx.cartItem.upsert({
-      where: { cart_id_book_id: { cart_id: cartId, book_id: bookId } },
+      where: { cart_id_variant_id: { cart_id: cartId, variant_id: variantId } },
       update: { quantity: { increment: quantity } },
-      create: { cart_id: cartId, book_id: bookId, quantity },
-      include: { book: true }
+      create: { cart_id: cartId, book_id: variant.product_id, variant_id: variantId, quantity },
+      include: { variant: { include: { product: true } } }
     });
 
     return item;
@@ -50,8 +55,8 @@ export const reserveAndUpdateQuantity = async (itemId, newQuantity) => {
     const diff = newQuantity - item.quantity;
 
     if (diff > 0) {
-      const result = await tx.book.updateMany({
-        where: { id: item.book_id, stock: { gte: diff } },
+      const result = await tx.productVariant.updateMany({
+        where: { id: item.variant_id, stock: { gte: diff } },
         data: { stock: { decrement: diff } }
       });
 
@@ -59,8 +64,8 @@ export const reserveAndUpdateQuantity = async (itemId, newQuantity) => {
         throw new Error('OUT_OF_STOCK');
       }
     } else if (diff < 0) {
-      await tx.book.update({
-        where: { id: item.book_id },
+      await tx.productVariant.update({
+        where: { id: item.variant_id },
         data: { stock: { increment: -diff } }
       });
     }
@@ -68,7 +73,7 @@ export const reserveAndUpdateQuantity = async (itemId, newQuantity) => {
     return tx.cartItem.update({
       where: { id: itemId },
       data: { quantity: newQuantity },
-      include: { book: true }
+      include: { variant: { include: { product: true } } }
     });
   });
 };
@@ -78,8 +83,8 @@ export const releaseAndRemoveItem = async (itemId) => {
     const item = await tx.cartItem.findUnique({ where: { id: itemId } });
     if (!item) throw new Error('ITEM_NOT_FOUND');
 
-    await tx.book.update({
-      where: { id: item.book_id },
+    await tx.productVariant.update({
+      where: { id: item.variant_id },
       data: { stock: { increment: item.quantity } }
     });
 
@@ -90,14 +95,14 @@ export const releaseAndRemoveItem = async (itemId) => {
 export const findCartItem = async (cartId, itemId) => {
   return prisma.cartItem.findFirst({
     where: { id: itemId, cart_id: cartId },
-    include: { book: true }
+    include: { variant: { include: { product: true } } }
   });
 };
 
-export const findCartItemByBook = async (cartId, bookId) => {
+export const findCartItemByVariant = async (cartId, variantId) => {
   return prisma.cartItem.findUnique({
     where: {
-      cart_id_book_id: { cart_id: cartId, book_id: bookId }
+      cart_id_variant_id: { cart_id: cartId, variant_id: variantId }
     }
   });
 };
@@ -106,7 +111,7 @@ export const updateItemQuantity = async (itemId, quantity) => {
   return prisma.cartItem.update({
     where: { id: itemId },
     data: { quantity },
-    include: { book: true }
+    include: { variant: { include: { product: true } } }
   });
 };
 
@@ -122,6 +127,6 @@ export const clearCart = async (cartId) => {
   });
 };
 
-export const getBookById = async (bookId) => {
-  return prisma.book.findUnique({ where: { id: bookId } });
+export const getVariantByBookId = async (bookId) => {
+  return prisma.productVariant.findFirst({ where: { product_id: bookId } });
 };

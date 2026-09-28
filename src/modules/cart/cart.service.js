@@ -8,13 +8,13 @@ const serializeCartItem = (item) => ({
   id: item.id,
   quantity: item.quantity,
   book: {
-    id: item.book.id,
-    name: item.book.title,
-    number: item.book.isbn,
-    category: item.book.category,
-    avatar_url: item.book.cover_url,
-    stock: item.book.stock,
-    price: item.book.price
+    id: item.variant.product.id,
+    name: item.variant.product.title,
+    number: item.variant.product.isbn,
+    category: item.variant.product.category,
+    avatar_url: item.variant.product.cover_url,
+    stock: item.variant.stock,
+    price: item.variant.price
   }
 });
 
@@ -53,16 +53,15 @@ export const getCart = async (t, userId) => {
 
 export const addToCart = async (t, userId, bookId) => {
   try {
-    const book = await cartRepo.getBookById(bookId);
-    if (!book) {
+    const variant = await cartRepo.getVariantByBookId(bookId);
+    if (!variant) {
       return { success: false, status: 404, message: t('cart.bookNotFound') };
     }
 
     const cart = await cartRepo.getOrCreateCart(userId);
 
     try {
-
-      await cartRepo.reserveAndAddItem(cart.id, bookId, 1);
+      await cartRepo.reserveAndAddItem(cart.id, variant.id, 1);
     } catch (txErr) {
       if (txErr.message === 'OUT_OF_STOCK') {
         return { success: false, status: 400, message: t('cart.outOfStock') };
@@ -95,11 +94,10 @@ export const updateQuantity = async (t, userId, itemId, quantity) => {
     }
 
     try {
-
       await cartRepo.reserveAndUpdateQuantity(itemId, quantity);
     } catch (txErr) {
       if (txErr.message === 'OUT_OF_STOCK') {
-        return { success: false, status: 400, message: t('cart.maxStock', { stock: item.book.stock }) };
+        return { success: false, status: 400, message: t('cart.maxStock', { stock: item.variant.stock }) };
       }
       if (txErr.message === 'ITEM_NOT_FOUND') {
         return { success: false, status: 404, message: t('cart.itemNotFound') };
@@ -109,7 +107,7 @@ export const updateQuantity = async (t, userId, itemId, quantity) => {
 
     const updatedCart = await cartRepo.getOrCreateCart(userId);
 
-    await invalidateBookCache(item.book.id);
+    await invalidateBookCache(item.variant.product.id);
     emitBooksUpdated();
 
     return { success: true, status: 200, data: serializeCart(updatedCart) };
@@ -130,7 +128,7 @@ export const removeFromCart = async (t, userId, itemId) => {
 
     const updatedCart = await cartRepo.getOrCreateCart(userId);
 
-    await invalidateBookCache(item.book.id);
+    await invalidateBookCache(item.variant.product.id);
     emitBooksUpdated();
 
     return { success: true, status: 200, data: serializeCart(updatedCart), message: t('cart.removeSuccess') };

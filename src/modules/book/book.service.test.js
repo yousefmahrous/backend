@@ -38,10 +38,11 @@ const makeBook = (overrides = {}) => ({
   description: 'desc',
   publisher: 'Pub',
   category: 'fiction',
-  price: 100,
-  stock: 5,
+  price: 999,
+  stock: 999,
   cover_url: 'http://x/cover.jpg',
   cover_key: 'cover-key',
+  variants: [{ id: 10, price: 100, stock: 5 }],
   ...overrides,
 });
 
@@ -63,6 +64,30 @@ describe('book.service', () => {
       expect(bookRepo.getAllBooks).toHaveBeenCalledWith(0, 10, '', '');
       expect(result.data.users[0]).toMatchObject({ id: 1, name: 'Book', price: 100, stock: 5 });
       expect(result.data.pagination).toMatchObject({ totalCount: 1, totalPages: 1, currentPage: 1 });
+    });
+
+    it("reads price/stock from the variant, not the stale book columns", async () => {
+      bookRepo.getAllBooks.mockResolvedValue({
+        books: [makeBook({ price: 777, stock: 777, variants: [{ id: 10, price: 100, stock: 5 }] })],
+        totalCount: 1,
+      });
+
+      const result = await bookService.getAllBooks(t);
+
+      expect(result.data.users[0].price).toBe(100);
+      expect(result.data.users[0].stock).toBe(5);
+    });
+
+    it('falls back to the book columns when a book somehow has no variant', async () => {
+      bookRepo.getAllBooks.mockResolvedValue({
+        books: [makeBook({ price: 777, stock: 777, variants: [] })],
+        totalCount: 1,
+      });
+
+      const result = await bookService.getAllBooks(t);
+
+      expect(result.data.users[0].price).toBe(777);
+      expect(result.data.users[0].stock).toBe(777);
     });
 
     it('computes skip correctly for later pages and forwards search/category filters', async () => {

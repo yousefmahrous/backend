@@ -1,4 +1,4 @@
-import * as bookRepo from './book.repository.js';
+﻿import * as bookRepo from './book.repository.js';
 import * as categoryRepo from '../category/category.repository.js';
 import redisClient from '../../core/config/redis.client.js';
 import { getIO } from '../../core/config/socket.config.js';
@@ -7,6 +7,7 @@ import logger from '../../core/logger.js';
 
 const serializeBook = (book) => {
   if (!book) return book;
+  const variant = book.variants?.[0];
   return {
     id: book.id,
     name: book.title,
@@ -15,8 +16,8 @@ const serializeBook = (book) => {
     adress: book.description,
     centre: book.publisher,
     category: book.category,
-    price: book.price,
-    stock: book.stock,
+    price: variant ? variant.price : book.price,
+    stock: variant ? variant.stock : book.stock,
     avatar_url: book.cover_url,
     avatar_key: book.cover_key,
   };
@@ -91,7 +92,7 @@ export const addBook = async (t, bookData) => {
         await redisClient.del('books:all');
       }
     } catch (redisErr) {
-      logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis أثناء الإضافة');
+      logger.warn({ err: redisErr }, 'ØªØ®Ø·ÙŠ Ø®Ø·Ø£ Ù…Ø³Ø­ Ø§Ù„ÙƒØ§Ø´ Ù…Ù† Redis Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø¥Ø¶Ø§ÙØ©');
     }
 
     getIO().emit('books_updated');
@@ -136,13 +137,13 @@ export const editBook = async (t, id, bookData) => {
         await redisClient.del(['books:all', `books:${id}`]);
       }
     } catch (redisErr) {
-      logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis');
+      logger.warn({ err: redisErr }, 'ØªØ®Ø·ÙŠ Ø®Ø·Ø£ Ù…Ø³Ø­ Ø§Ù„ÙƒØ§Ø´ Ù…Ù† Redis');
     }
     getIO().emit('books_updated');
     return { success: true, status: 200, message: t('book.updated') };
 
   } catch (err) {
-    logger.error({ err: err }, 'خطأ الباك إند في التعديل');
+    logger.error({ err: err }, 'Ø®Ø·Ø£ Ø§Ù„Ø¨Ø§Ùƒ Ø¥Ù†Ø¯ ÙÙŠ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„');
 
     if (err.code === 'P2025') {
       return { success: false, status: 404, message: t('book.notFound') };

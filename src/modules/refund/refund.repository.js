@@ -163,8 +163,8 @@ export const completeRefund = async (id) => {
     });
 
     for (const item of request.order.items) {
-      await tx.book.update({
-        where: { id: item.book_id },
+      await tx.productVariant.updateMany({
+        where: { product_id: item.book_id },
         data: { stock: { increment: item.quantity } }
       });
     }
@@ -205,8 +205,8 @@ export const markOrderRefundedFromWebhook = async (paymentIntentId) => {
     }
 
     for (const item of order.items) {
-      await tx.book.update({
-        where: { id: item.book_id },
+      await tx.productVariant.updateMany({
+        where: { product_id: item.book_id },
         data: { stock: { increment: item.quantity } }
       });
     }
