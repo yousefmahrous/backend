@@ -3,6 +3,7 @@ import * as bookService from '../../modules/book/book.service.js';
 import { validateAdd, validateEdit } from '../../core/middlewares/validation.js';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
+import optionalAuth from '../../core/middlewares/optionalAuth.middleware.js';
 import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 
 const router = express.Router();
@@ -25,8 +26,9 @@ router.get('/popular', async (req, res) => {
   res.status(status).json(response);
 });
 
-router.get('/:id', async (req, res) => {
-  const { status, ...response } = await bookService.getBookById(req.t, req.params.id);
+router.get('/:id', optionalAuth, async (req, res) => {
+  const isAdmin = req.user?.role === 'admin';
+  const { status, ...response } = await bookService.getBookById(req.t, req.params.id, isAdmin);
   res.status(status).json(response);
 });
 

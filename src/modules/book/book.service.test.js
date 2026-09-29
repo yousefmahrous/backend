@@ -42,6 +42,8 @@ const makeBook = (overrides = {}) => ({
   stock: 999,
   cover_url: 'http://x/cover.jpg',
   cover_key: 'cover-key',
+  status: 'published',
+  vendor: { status: 'active' },
   variants: [{ id: 10, price: 100, stock: 5 }],
   ...overrides,
 });
@@ -127,7 +129,7 @@ describe('book.service', () => {
     });
 
     it('fetches from the repository on a cache miss and caches the serialized result', async () => {
-      bookRepo.getBookById.mockResolvedValue(makeBook());
+      bookRepo.getBookById.mockResolvedValue(makeBook({ vendor: { status: 'active' } }));
 
       const result = await bookService.getBookById(t, 1);
 
@@ -137,6 +139,33 @@ describe('book.service', () => {
         { EX: 3600 }
       );
       expect(result).toMatchObject({ success: true, status: 200, data: { user: { id: 1, name: 'Book' } } });
+    });
+
+    it('hides an unpublished book from a regular visitor (returns 404, no leak)', async () => {
+      bookRepo.getBookById.mockResolvedValue(makeBook({ status: 'draft', vendor: { status: 'active' } }));
+
+      const result = await bookService.getBookById(t, 1);
+
+      expect(result).toEqual({ success: false, status: 404, message: 'book.notFound' });
+      expect(redisClient.set).not.toHaveBeenCalled();
+    });
+
+    it("hides a book whose vendor is suspended from a regular visitor", async () => {
+      bookRepo.getBookById.mockResolvedValue(makeBook({ status: 'published', vendor: { status: 'suspended' } }));
+
+      const result = await bookService.getBookById(t, 1);
+
+      expect(result).toEqual({ success: false, status: 404, message: 'book.notFound' });
+    });
+
+    it('lets an admin see a hidden book, uncached, without the visibility check', async () => {
+      bookRepo.getBookById.mockResolvedValue(makeBook({ status: 'draft', vendor: { status: 'suspended' } }));
+
+      const result = await bookService.getBookById(t, 1, true);
+
+      expect(result).toMatchObject({ success: true, status: 200, data: { user: { id: 1 } } });
+      expect(redisClient.get).not.toHaveBeenCalled();
+      expect(redisClient.set).not.toHaveBeenCalled();
     });
   });
 

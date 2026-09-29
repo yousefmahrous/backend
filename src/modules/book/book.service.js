@@ -52,15 +52,24 @@ export const getAllBooks = async (t, page = 1, limit = 10, search = "", category
   }
 };
 
-export const getBookById = async (t, id) => {
+export const getBookById = async (t, id, isAdmin = false) => {
   try {
+    if (isAdmin) {
+      const book = await bookRepo.getBookById(id);
+      if (!book) {
+        return { success: false, status: 404, message: t('book.notFound') };
+      }
+      return { success: true, status: 200, data: { user: serializeBook(book) } };
+    }
+
     const cachedBook = await redisClient.get(`books:${id}`);
     if (cachedBook) {
       return { success: true, status: 200, data: { user: JSON.parse(cachedBook) } };
     }
 
     const book = await bookRepo.getBookById(id);
-    if (!book) {
+    const isHidden = !book || book.status !== 'published' || book.vendor?.status !== 'active';
+    if (isHidden) {
       return { success: false, status: 404, message: t('book.notFound') };
     }
 
@@ -92,7 +101,7 @@ export const addBook = async (t, bookData) => {
         await redisClient.del('books:all');
       }
     } catch (redisErr) {
-      logger.warn({ err: redisErr }, 'ØªØ®Ø·ÙŠ Ø®Ø·Ø£ Ù…Ø³Ø­ Ø§Ù„ÙƒØ§Ø´ Ù…Ù† Redis Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø¥Ø¶Ø§ÙØ©');
+      logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis أثناء الإضافة');
     }
 
     getIO().emit('books_updated');
@@ -137,13 +146,13 @@ export const editBook = async (t, id, bookData) => {
         await redisClient.del(['books:all', `books:${id}`]);
       }
     } catch (redisErr) {
-      logger.warn({ err: redisErr }, 'ØªØ®Ø·ÙŠ Ø®Ø·Ø£ Ù…Ø³Ø­ Ø§Ù„ÙƒØ§Ø´ Ù…Ù† Redis');
+      logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis');
     }
     getIO().emit('books_updated');
     return { success: true, status: 200, message: t('book.updated') };
 
   } catch (err) {
-    logger.error({ err: err }, 'Ø®Ø·Ø£ Ø§Ù„Ø¨Ø§Ùƒ Ø¥Ù†Ø¯ ÙÙŠ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„');
+    logger.error({ err: err }, 'خطأ الباك إند في التعديل');
 
     if (err.code === 'P2025') {
       return { success: false, status: 404, message: t('book.notFound') };

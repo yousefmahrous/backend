@@ -35,7 +35,7 @@ export const getAllBooks = async (skip, take, search = "", category = "") => {
 export const getBookById = async (id) => {
   const book = await prisma.book.findUnique({
     where: { id: parseInt(id) },
-    include: { variants: true }
+    include: { variants: true, vendor: { select: { status: true } } }
   });
   return book;
 };
@@ -135,6 +135,7 @@ export const updateBook = async (id, bookData) => {
 
   return updatedBook;
 };
+
 export const getPopularBooks = async (limit = 10) => {
   return prisma.book.findMany({
     where: { status: 'published', vendor: { status: 'active' } },
