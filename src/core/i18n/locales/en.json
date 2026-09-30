@@ -173,6 +173,7 @@
     "applyError": "An error occurred while submitting your application",
     "alreadyExists": "You already have a store or a pending application",
     "adminCannotApply": "Admin accounts cannot apply as vendors",
+    "notActive": "You must have an active vendor account to do this",
     "loadError": "An error occurred while loading vendors",
     "invalidId": "Invalid vendor ID",
     "notFound": "Vendor not found",

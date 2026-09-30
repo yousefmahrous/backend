@@ -135,7 +135,6 @@ export const updateBook = async (id, bookData) => {
 
   return updatedBook;
 };
-
 export const getPopularBooks = async (limit = 10) => {
   return prisma.book.findMany({
     where: { status: 'published', vendor: { status: 'active' } },
@@ -143,4 +142,52 @@ export const getPopularBooks = async (limit = 10) => {
     take: limit,
     include: { variants: true }
   });
+};
+
+export const getBooksByVendor = async (vendorId, skip, take) => {
+  const where = { vendor_id: vendorId };
+  const [books, totalCount] = await Promise.all([
+    prisma.book.findMany({ where, skip, take, orderBy: { id: 'desc' }, include: { variants: true } }),
+    prisma.book.count({ where })
+  ]);
+  return { books, totalCount };
+};
+
+export const getVendorBookById = async (vendorId, id) => {
+  return prisma.book.findFirst({
+    where: { id: parseInt(id), vendor_id: vendorId },
+    include: { variants: true }
+  });
+};
+
+export const updateVendorBook = async (vendorId, id, bookData) => {
+  const bookId = parseInt(id);
+
+  return prisma.$transaction(async (tx) => {
+    const result = await tx.book.updateMany({
+      where: { id: bookId, vendor_id: vendorId },
+      data: {
+        title: bookData.name,
+        description: bookData.adress,
+        stock: bookData.stock,
+        price: bookData.price
+      }
+    });
+
+    if (result.count === 0) return null;
+
+    await tx.productVariant.updateMany({
+      where: { product_id: bookId },
+      data: { stock: bookData.stock, price: bookData.price }
+    });
+
+    return tx.book.findUnique({ where: { id: bookId } });
+  });
+};
+
+export const deleteVendorBook = async (vendorId, id) => {
+  const result = await prisma.book.deleteMany({
+    where: { id: parseInt(id), vendor_id: vendorId }
+  });
+  return result.count > 0;
 };

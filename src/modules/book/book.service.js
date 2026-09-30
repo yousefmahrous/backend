@@ -5,7 +5,7 @@ import { getIO } from '../../core/config/socket.config.js';
 import logger from '../../core/logger.js';
 
 
-const serializeBook = (book) => {
+export const serializeBook = (book) => {
   if (!book) return book;
   const variant = book.variants?.[0];
   return {

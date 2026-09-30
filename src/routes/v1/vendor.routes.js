@@ -7,6 +7,9 @@ import {
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
 import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
+import requireVendor from '../../core/middlewares/requireVendor.middleware.js';
+import * as vendorBookService from '../../modules/vendor/vendor.book.service.js';
+import { validateAdd, validateEdit } from '../../core/middlewares/validation.js';
 
 const router = express.Router();
 
@@ -62,6 +65,32 @@ router.patch('/:id/status', requireAdmin, doubleCsrfProtection, async (req, res)
     vendorId,
     result.data.status
   );
+  res.status(status).json(response);
+});
+
+router.get('/books', requireVendor, async (req, res) => {
+  const { page, limit } = req.query;
+  const { status, ...response } = await vendorBookService.getMyBooks(req.t, req.vendor.id, page, limit);
+  res.status(status).json(response);
+});
+
+router.post('/books', requireVendor, doubleCsrfProtection, validateAdd, async (req, res) => {
+  const { status, ...response } = await vendorBookService.addMyBook(req.t, req.vendor.id, req.body);
+  res.status(status).json(response);
+});
+
+router.get('/books/:id', requireVendor, async (req, res) => {
+  const { status, ...response } = await vendorBookService.getMyBookById(req.t, req.vendor.id, req.params.id);
+  res.status(status).json(response);
+});
+
+router.put('/books/:id', requireVendor, doubleCsrfProtection, validateEdit, async (req, res) => {
+  const { status, ...response } = await vendorBookService.editMyBook(req.t, req.vendor.id, req.params.id, req.body);
+  res.status(status).json(response);
+});
+
+router.delete('/books/:id', requireVendor, doubleCsrfProtection, async (req, res) => {
+  const { status, ...response } = await vendorBookService.deleteMyBook(req.t, req.vendor.id, req.params.id);
   res.status(status).json(response);
 });
 

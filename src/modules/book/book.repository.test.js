@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const tx = {
-  book: { create: vi.fn(), update: vi.fn() },
+  book: { create: vi.fn(), update: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn() },
   productVariant: { create: vi.fn(), updateMany: vi.fn() },
 };
 
@@ -128,5 +128,50 @@ describe('book.repository updateBook', () => {
     tx.productVariant.updateMany.mockRejectedValue(new Error('db down'));
 
     await expect(bookRepo.updateBook(5, { stock: 20, price: 5000 })).rejects.toThrow('db down');
+  });
+});
+
+describe('book.repository vendor-scoped ownership', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prisma.$transaction.mockImplementation((cb) => cb(tx));
+    tx.productVariant.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it('updateVendorBook: scopes the update to (id AND vendor_id), refusing to touch another vendor\'s book', async () => {
+    tx.book.updateMany.mockResolvedValue({ count: 0 });
+
+    const result = await bookRepo.updateVendorBook(5, 1, { stock: 1, price: 1 });
+
+    expect(tx.book.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 1, vendor_id: 5 } })
+    );
+    expect(result).toBeNull();
+    expect(tx.productVariant.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('updateVendorBook: updates the variant too when the book belongs to this vendor', async () => {
+    tx.book.updateMany.mockResolvedValue({ count: 1 });
+    tx.book.findUnique.mockResolvedValue({ id: 1 });
+
+    const result = await bookRepo.updateVendorBook(5, 1, { stock: 9, price: 100 });
+
+    expect(tx.productVariant.updateMany).toHaveBeenCalledWith({
+      where: { product_id: 1 },
+      data: { stock: 9, price: 100 },
+    });
+    expect(result).toEqual({ id: 1 });
+  });
+});
+
+describe('book.repository deleteVendorBook', () => {
+  it("scopes the delete to (id AND vendor_id), returning false for another vendor's book", async () => {
+    prisma.book = prisma.book || {};
+    prisma.book.deleteMany = vi.fn().mockResolvedValue({ count: 0 });
+
+    const result = await bookRepo.deleteVendorBook(5, 1);
+
+    expect(prisma.book.deleteMany).toHaveBeenCalledWith({ where: { id: 1, vendor_id: 5 } });
+    expect(result).toBe(false);
   });
 });
