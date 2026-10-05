@@ -90,6 +90,7 @@ export const addBook = async (t, bookData) => {
       return {
         success: false,
         status: 400,
+        message: t('book.validation.categoryInvalid'),
         errors: { category: [t('book.validation.categoryInvalid')] }
       };
     }

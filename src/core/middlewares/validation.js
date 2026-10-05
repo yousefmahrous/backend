@@ -4,7 +4,8 @@ export const validateAdd = (req, res, next) => {
   const result = createBookSchema(req.t).safeParse(req.body);
   if (!result.success) {
     const fieldErrors = result.error.flatten().fieldErrors;
-    return res.status(400).json({ success: false, errors: fieldErrors });
+    const errorMessage = Object.values(fieldErrors).flat().join(" - ");
+    return res.status(400).json({ success: false, message: errorMessage, errors: fieldErrors });
   }
   req.body = result.data;
   next();

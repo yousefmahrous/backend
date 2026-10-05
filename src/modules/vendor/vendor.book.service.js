@@ -53,7 +53,7 @@ export const addMyBook = async (t, vendorId, bookData) => {
   try {
     const category = await categoryRepo.findCategoryBySlug(bookData.category);
     if (!category) {
-      return { success: false, status: 400, errors: { category: [t('book.validation.categoryInvalid')] } };
+      return { success: false, status: 400, message: t('book.validation.categoryInvalid'), errors: { category: [t('book.validation.categoryInvalid')] } };
     }
 
     await bookRepo.createBook({ ...bookData, category_id: category.id }, vendorId);
