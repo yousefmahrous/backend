@@ -27,7 +27,7 @@ model User {
   tickets                Ticket[]
   vendor                 Vendor?
 
-  @@map("users") 
+  @@map("users")
 }
 
 model Book {
@@ -114,6 +114,7 @@ model Vendor {
   updated_at     DateTime @updatedAt
 
   books          Book[]
+  vendorOrders   VendorOrder[]
 
   @@map("vendors")
 }
@@ -136,12 +137,39 @@ model Order {
   paid_at            DateTime?
   total_amount       Int
   currency           String      @default("egp")
+  shipping_name      String?
+  shipping_phone     String?
+  shipping_address   String?
+  shipping_city      String?
+  shipping_notes     String?
   items              OrderItem[]
+  vendorOrders       VendorOrder[]
   refundRequests     RefundRequest[]
   created_at         DateTime    @default(now())
   updated_at         DateTime    @updatedAt
 
   @@map("orders")
+}
+
+model VendorOrder {
+  id                 Int        @id @default(autoincrement())
+  order_id           Int
+  order              Order      @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  vendor_id          Int
+  vendor             Vendor     @relation(fields: [vendor_id], references: [id], onDelete: Restrict)
+  fulfillment_status String     @default("pending")
+  carrier            String?
+  tracking_number    String?
+  shipped_at         DateTime?
+  delivered_at       DateTime?
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+
+  items              OrderItem[]
+
+  @@unique([order_id, vendor_id])
+  @@index([vendor_id])
+  @@map("vendor_orders")
 }
 
 model RefundRequest {
@@ -187,14 +215,17 @@ model TicketMessage {
 }
 
 model OrderItem {
-  id         Int      @id @default(autoincrement())
-  order_id   Int
-  order      Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
-  book_id    Int
-  book       Book     @relation(fields: [book_id], references: [id])
-  quantity   Int
-  unit_price Int
+  id              Int          @id @default(autoincrement())
+  order_id        Int
+  order           Order        @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  book_id         Int
+  book            Book         @relation(fields: [book_id], references: [id])
+  vendor_order_id Int?
+  vendorOrder     VendorOrder? @relation(fields: [vendor_order_id], references: [id], onDelete: SetNull)
+  quantity        Int
+  unit_price      Int
 
+  @@index([vendor_order_id])
   @@map("order_items")
 }
 
