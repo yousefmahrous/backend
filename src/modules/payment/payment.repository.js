@@ -21,7 +21,7 @@ export const cancelOrder = async (orderId) => {
   });
 };
 
-export const createPendingOrderFromCart = async (userId, cart) => {
+export const createPendingOrderFromCart = async (userId, cart, shipping) => {
   return prisma.$transaction(async (tx) => {
     const totalAmount = cart.items.reduce(
       (sum, item) => sum + item.variant.price * item.quantity,
@@ -33,18 +33,38 @@ export const createPendingOrderFromCart = async (userId, cart) => {
         user_id: userId,
         status: 'pending',
         total_amount: totalAmount,
-        items: {
-          create: cart.items.map((item) => ({
-            book_id: item.book_id,
-            quantity: item.quantity,
-            unit_price: item.variant.price
-          }))
-        }
-      },
-      include: { items: { include: { book: true } } }
+        shipping_name: shipping.name,
+        shipping_phone: shipping.phone,
+        shipping_address: shipping.address,
+        shipping_city: shipping.city,
+        shipping_notes: shipping.notes ?? null
+      }
     });
 
-    return order;
+    const vendorIds = [...new Set(cart.items.map((item) => item.variant.product.vendor_id))];
+    const vendorOrderIdByVendor = new Map();
+
+    for (const vendorId of vendorIds) {
+      const vendorOrder = await tx.vendorOrder.create({
+        data: { order_id: order.id, vendor_id: vendorId }
+      });
+      vendorOrderIdByVendor.set(vendorId, vendorOrder.id);
+    }
+
+    await tx.orderItem.createMany({
+      data: cart.items.map((item) => ({
+        order_id: order.id,
+        book_id: item.book_id,
+        vendor_order_id: vendorOrderIdByVendor.get(item.variant.product.vendor_id),
+        quantity: item.quantity,
+        unit_price: item.variant.price
+      }))
+    });
+
+    return tx.order.findUnique({
+      where: { id: order.id },
+      include: { items: { include: { book: true } } }
+    });
   });
 };
 

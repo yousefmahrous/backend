@@ -22,9 +22,24 @@ async function main() {
       paid_at: new Date(),
       total_amount: anyBook.price,
       currency: 'egp',
-      items: {
-        create: [{ book_id: anyBook.id, quantity: 1, unit_price: anyBook.price }],
-      },
+      shipping_name: 'Test Customer',
+      shipping_phone: '01012345678',
+      shipping_address: '12 Tahrir St, Dokki',
+      shipping_city: 'Giza',
+    },
+  });
+
+  const vendorOrder = await prisma.vendorOrder.create({
+    data: { order_id: order.id, vendor_id: anyBook.vendor_id },
+  });
+
+  await prisma.orderItem.create({
+    data: {
+      order_id: order.id,
+      book_id: anyBook.id,
+      vendor_order_id: vendorOrder.id,
+      quantity: 1,
+      unit_price: anyBook.price,
     },
   });
 

@@ -61,7 +61,7 @@ export const expireStalePendingOrders = async (userId) => {
   }
 };
 
-export const createCheckoutSession = async (t, lang, userId) => {
+export const createCheckoutSession = async (t, lang, userId, shipping) => {
   try {
     const cart = await cartRepo.getOrCreateCart(userId);
 
@@ -80,7 +80,7 @@ export const createCheckoutSession = async (t, lang, userId) => {
       await paymentRepo.cancelOrder(existingPending.id);
     }
 
-    const order = await paymentRepo.createPendingOrderFromCart(userId, cart);
+    const order = await paymentRepo.createPendingOrderFromCart(userId, cart, shipping);
 
     const line_items = order.items.map((item) => ({
       price_data: {

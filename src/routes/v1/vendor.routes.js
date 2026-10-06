@@ -2,13 +2,15 @@ import express from 'express';
 import * as vendorService from '../../modules/vendor/vendor.service.js';
 import {
   createVendorApplicationSchema,
-  updateVendorStatusSchema
+  updateVendorStatusSchema,
+  updateFulfillmentSchema
 } from '../../modules/vendor/vendor.schema.js';
 import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
 import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 import requireVendor from '../../core/middlewares/requireVendor.middleware.js';
 import * as vendorBookService from '../../modules/vendor/vendor.book.service.js';
+import * as vendorOrderService from '../../modules/vendor/vendor.order.service.js';
 import { validateAdd, validateEdit } from '../../core/middlewares/validation.js';
 
 const router = express.Router();
@@ -91,6 +93,50 @@ router.put('/books/:id', requireVendor, doubleCsrfProtection, validateEdit, asyn
 
 router.delete('/books/:id', requireVendor, doubleCsrfProtection, async (req, res) => {
   const { status, ...response } = await vendorBookService.deleteMyBook(req.t, req.vendor.id, req.params.id);
+  res.status(status).json(response);
+});
+
+router.get('/orders', requireVendor, async (req, res) => {
+  const { page, limit, status: fulfillmentStatus } = req.query;
+  const { status, ...response } = await vendorOrderService.getMyOrders(
+    req.t,
+    req.lang,
+    req.vendor.id,
+    page,
+    limit,
+    fulfillmentStatus
+  );
+  res.status(status).json(response);
+});
+
+router.get('/orders/:id', requireVendor, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ success: false, message: req.t('order.invalidId') });
+  }
+
+  const { status, ...response } = await vendorOrderService.getMyOrderById(req.t, req.lang, req.vendor.id, id);
+  res.status(status).json(response);
+});
+
+router.patch('/orders/:id/fulfillment', requireVendor, doubleCsrfProtection, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ success: false, message: req.t('order.invalidId') });
+  }
+
+  const result = updateFulfillmentSchema(req.t).safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ success: false, errors: result.error.flatten().fieldErrors });
+  }
+
+  const { status, ...response } = await vendorOrderService.updateFulfillment(
+    req.t,
+    req.lang,
+    req.vendor.id,
+    id,
+    result.data
+  );
   res.status(status).json(response);
 });
 

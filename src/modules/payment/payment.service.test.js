@@ -52,6 +52,14 @@ const paymentService = await import('./payment.service.js');
 
 const t = fakeT;
 
+const shipping = {
+  name: 'Ali Hassan',
+  phone: '01012345678',
+  address: '12 Tahrir St, Dokki',
+  city: 'Giza',
+  notes: null,
+};
+
 describe('payment.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,7 +69,7 @@ describe('payment.service', () => {
     it('refuses to check out an empty cart without creating an order', async () => {
       cartRepo.getOrCreateCart.mockResolvedValue({ items: [] });
 
-      const result = await paymentService.createCheckoutSession(t, 'ar', 5);
+      const result = await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
 
       expect(result).toEqual({ success: false, status: 400, message: 'payment.cartEmpty' });
       expect(paymentRepo.createPendingOrderFromCart).not.toHaveBeenCalled();
@@ -76,7 +84,7 @@ describe('payment.service', () => {
       });
       stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
 
-      const result = await paymentService.createCheckoutSession(t, 'ar', 5);
+      const result = await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
 
       expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith('sess_old');
       expect(paymentRepo.cancelOrder).toHaveBeenCalledWith(9);
@@ -91,7 +99,7 @@ describe('payment.service', () => {
       paymentRepo.createPendingOrderFromCart.mockResolvedValue({ id: 10, items: [] });
       stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
 
-      const result = await paymentService.createCheckoutSession(t, 'ar', 5);
+      const result = await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
 
       expect(paymentRepo.cancelOrder).toHaveBeenCalledWith(9);
       expect(result).toMatchObject({ success: true, status: 200 });
@@ -106,7 +114,7 @@ describe('payment.service', () => {
       });
       stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
 
-      await paymentService.createCheckoutSession(t, 'en', 5);
+      await paymentService.createCheckoutSession(t, 'en', 5, shipping);
 
       expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -126,10 +134,25 @@ describe('payment.service', () => {
       );
     });
 
+    it('passes the shipping address through to the order creation', async () => {
+      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ book_id: 1 }] });
+      paymentRepo.findPendingOrderByUser.mockResolvedValue(null);
+      paymentRepo.createPendingOrderFromCart.mockResolvedValue({ id: 10, items: [] });
+      stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
+
+      await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
+
+      expect(paymentRepo.createPendingOrderFromCart).toHaveBeenCalledWith(
+        5,
+        { items: [{ book_id: 1 }] },
+        shipping
+      );
+    });
+
     it('returns a 500 when something throws unexpectedly', async () => {
       cartRepo.getOrCreateCart.mockRejectedValue(new Error('db down'));
 
-      const result = await paymentService.createCheckoutSession(t, 'ar', 5);
+      const result = await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
 
       expect(result).toEqual({ success: false, status: 500, message: 'payment.checkoutError' });
     });

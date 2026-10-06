@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const tx = {
   order: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  vendorOrder: { create: vi.fn() },
+  orderItem: { createMany: vi.fn() },
   cart: { findUnique: vi.fn() },
   cartItem: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
   productVariant: { updateMany: vi.fn() },
@@ -18,10 +20,19 @@ const paymentRepo = await import('./payment.repository.js');
 
 const makeCart = () => ({
   items: [
-    { book_id: 1, quantity: 2, variant: { id: 10, price: 100 } },
-    { book_id: 2, quantity: 1, variant: { id: 20, price: 250 } },
+    { book_id: 1, quantity: 2, variant: { id: 10, price: 100, product: { vendor_id: 7 } } },
+    { book_id: 2, quantity: 1, variant: { id: 20, price: 250, product: { vendor_id: 8 } } },
+    { book_id: 3, quantity: 1, variant: { id: 30, price: 50, product: { vendor_id: 7 } } },
   ],
 });
+
+const shipping = {
+  name: 'Ali Hassan',
+  phone: '01012345678',
+  address: '12 Tahrir St, Dokki',
+  city: 'Giza',
+  notes: null,
+};
 
 describe('payment.repository', () => {
   beforeEach(() => {
@@ -30,27 +41,68 @@ describe('payment.repository', () => {
   });
 
   describe('createPendingOrderFromCart', () => {
-    it('prices every order item, and the total, from the variant price, not a book price', async () => {
+    beforeEach(() => {
       tx.order.create.mockResolvedValue({ id: 1 });
+      tx.order.findUnique.mockResolvedValue({ id: 1, items: [] });
+      let nextVendorOrderId = 100;
+      tx.vendorOrder.create.mockImplementation(async ({ data }) => ({
+        id: nextVendorOrderId++,
+        ...data,
+      }));
+    });
 
-      await paymentRepo.createPendingOrderFromCart(5, makeCart());
+    it('prices the total and every order item from the variant price, not a book price', async () => {
+      await paymentRepo.createPendingOrderFromCart(5, makeCart(), shipping);
 
       const { data } = tx.order.create.mock.calls[0][0];
-      expect(data.total_amount).toBe(2 * 100 + 1 * 250);
-      expect(data.items.create).toEqual([
+      expect(data.total_amount).toBe(2 * 100 + 1 * 250 + 1 * 50);
+
+      const { data: items } = tx.orderItem.createMany.mock.calls[0][0];
+      expect(items.map(({ book_id, quantity, unit_price }) => ({ book_id, quantity, unit_price }))).toEqual([
         { book_id: 1, quantity: 2, unit_price: 100 },
         { book_id: 2, quantity: 1, unit_price: 250 },
+        { book_id: 3, quantity: 1, unit_price: 50 },
       ]);
     });
 
     it('creates the order for the given user with pending status', async () => {
-      tx.order.create.mockResolvedValue({ id: 1 });
-
-      await paymentRepo.createPendingOrderFromCart(5, makeCart());
+      await paymentRepo.createPendingOrderFromCart(5, makeCart(), shipping);
 
       const { data } = tx.order.create.mock.calls[0][0];
       expect(data.user_id).toBe(5);
       expect(data.status).toBe('pending');
+    });
+
+    it('stores the shipping address on the order', async () => {
+      await paymentRepo.createPendingOrderFromCart(5, makeCart(), { ...shipping, notes: 'Ring twice' });
+
+      const { data } = tx.order.create.mock.calls[0][0];
+      expect(data).toMatchObject({
+        shipping_name: 'Ali Hassan',
+        shipping_phone: '01012345678',
+        shipping_address: '12 Tahrir St, Dokki',
+        shipping_city: 'Giza',
+        shipping_notes: 'Ring twice',
+      });
+    });
+
+    it('creates exactly one vendor order per vendor in the cart', async () => {
+      await paymentRepo.createPendingOrderFromCart(5, makeCart(), shipping);
+
+      expect(tx.vendorOrder.create).toHaveBeenCalledTimes(2);
+      expect(tx.vendorOrder.create).toHaveBeenCalledWith({ data: { order_id: 1, vendor_id: 7 } });
+      expect(tx.vendorOrder.create).toHaveBeenCalledWith({ data: { order_id: 1, vendor_id: 8 } });
+    });
+
+    it("links each order item to its own vendor's vendor order", async () => {
+      await paymentRepo.createPendingOrderFromCart(5, makeCart(), shipping);
+
+      const { data: items } = tx.orderItem.createMany.mock.calls[0][0];
+      expect(items.map((i) => [i.book_id, i.vendor_order_id])).toEqual([
+        [1, 100],
+        [2, 101],
+        [3, 100],
+      ]);
     });
   });
 

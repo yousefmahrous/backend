@@ -2,6 +2,37 @@ import * as orderRepo from './order.repository.js';
 import { pickLocalized } from '../../core/i18n/localized.js';
 import logger from '../../core/logger.js';
 
+const serializeItem = (item, lang) => ({
+  book_id: item.book_id,
+  title: pickLocalized(item.book.title, lang),
+  quantity: item.quantity,
+  unit_price: item.unit_price
+});
+
+const serializeShipment = (vendorOrder, lang) => ({
+  id: vendorOrder.id,
+  vendor: vendorOrder.vendor
+    ? { id: vendorOrder.vendor.id, store_name: vendorOrder.vendor.store_name }
+    : null,
+  fulfillment_status: vendorOrder.fulfillment_status,
+  carrier: vendorOrder.carrier,
+  tracking_number: vendorOrder.tracking_number,
+  shipped_at: vendorOrder.shipped_at,
+  delivered_at: vendorOrder.delivered_at,
+  items: (vendorOrder.items ?? []).map((item) => serializeItem(item, lang))
+});
+
+const serializeShipping = (order) =>
+  order.shipping_name
+    ? {
+        name: order.shipping_name,
+        phone: order.shipping_phone,
+        address: order.shipping_address,
+        city: order.shipping_city,
+        notes: order.shipping_notes
+      }
+    : null;
+
 const serializeOrder = (order, lang) => ({
   id: order.id,
   status: order.status,
@@ -9,12 +40,9 @@ const serializeOrder = (order, lang) => ({
   currency: order.currency,
   created_at: order.created_at,
   paid_at: order.paid_at,
-  items: order.items.map((item) => ({
-    book_id: item.book_id,
-    title: pickLocalized(item.book.title, lang),
-    quantity: item.quantity,
-    unit_price: item.unit_price
-  }))
+  items: order.items.map((item) => serializeItem(item, lang)),
+  shipping: serializeShipping(order),
+  shipments: (order.vendorOrders ?? []).map((vo) => serializeShipment(vo, lang))
 });
 
 export const getOrderForUser = async (t, lang, orderId, userId) => {

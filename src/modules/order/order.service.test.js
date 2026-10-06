@@ -29,6 +29,63 @@ describe('order.service', () => {
     vi.clearAllMocks();
   });
 
+  describe('shipping details and shipments', () => {
+    it('returns the shipping address and one shipment per vendor', async () => {
+      orderRepo.findOrderByIdForUser.mockResolvedValue(
+        makeOrder({
+          shipping_name: 'Ali Hassan',
+          shipping_phone: '01012345678',
+          shipping_address: '12 Tahrir St, Dokki',
+          shipping_city: 'Giza',
+          shipping_notes: null,
+          vendorOrders: [
+            {
+              id: 3,
+              vendor: { id: 7, store_name: 'Cairo Books', slug: 'secret' },
+              fulfillment_status: 'shipped',
+              carrier: 'Bosta',
+              tracking_number: 'TRK1',
+              shipped_at: 's',
+              delivered_at: null,
+              items: [{ book_id: 1, book: { title: { ar: 'كتاب', en: 'Book' } }, quantity: 2, unit_price: 50 }],
+            },
+          ],
+        })
+      );
+
+      const result = await orderService.getOrderForUser(t, 'en', 1, 5);
+
+      expect(result.data.shipping).toEqual({
+        name: 'Ali Hassan',
+        phone: '01012345678',
+        address: '12 Tahrir St, Dokki',
+        city: 'Giza',
+        notes: null,
+      });
+      expect(result.data.shipments).toEqual([
+        {
+          id: 3,
+          vendor: { id: 7, store_name: 'Cairo Books' },
+          fulfillment_status: 'shipped',
+          carrier: 'Bosta',
+          tracking_number: 'TRK1',
+          shipped_at: 's',
+          delivered_at: null,
+          items: [{ book_id: 1, title: 'Book', quantity: 2, unit_price: 50 }],
+        },
+      ]);
+    });
+
+    it('returns shipping: null and no shipments for legacy orders without them', async () => {
+      orderRepo.findOrderByIdForUser.mockResolvedValue(makeOrder());
+
+      const result = await orderService.getOrderForUser(t, 'en', 1, 5);
+
+      expect(result.data.shipping).toBeNull();
+      expect(result.data.shipments).toEqual([]);
+    });
+  });
+
   describe('getOrderForUser', () => {
     it('returns 404 when the order does not belong to this user or does not exist', async () => {
       orderRepo.findOrderByIdForUser.mockResolvedValue(null);

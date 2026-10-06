@@ -72,7 +72,21 @@
     "notFound": "Order not found",
     "loadError": "An error occurred while loading the order",
     "noOrdersYet": "No orders yet",
-    "loadListError": "An error occurred while loading orders"
+    "loadListError": "An error occurred while loading orders",
+    "validation": {
+      "nameRequired": "Full name is required",
+      "nameMin": "Full name must be at least 3 characters",
+      "nameMax": "Full name must be at most 80 characters",
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Enter a valid Egyptian mobile number (e.g. 01012345678)",
+      "addressRequired": "Address is required",
+      "addressMin": "Please enter the full address (at least 10 characters)",
+      "addressMax": "Address must be at most 250 characters",
+      "cityRequired": "City is required",
+      "cityMin": "City must be at least 2 characters",
+      "cityMax": "City must be at most 60 characters",
+      "notesMax": "Notes must be at most 300 characters"
+    }
   },
   "review": {
     "customersOnly": "Reviews are only available for customers",
@@ -187,6 +201,21 @@
       "storeNameMin": "Store name must be at least 3 characters",
       "storeNameMax": "Store name must be at most 60 characters",
       "statusInvalid": "Invalid vendor status"
+    },
+    "orders": {
+      "loadError": "An error occurred while loading orders",
+      "notFound": "Order not found",
+      "invalidTransition": "This shipping status change is not allowed",
+      "statusConflict": "This order was updated by someone else, please refresh and try again",
+      "orderNotActive": "This order is under return or refund and can't be updated",
+      "updated": "Order status updated successfully",
+      "updateError": "An error occurred while updating the order status",
+      "validation": {
+        "statusInvalid": "Invalid shipping status",
+        "carrierRequired": "Shipping company is required when marking as shipped",
+        "carrierMax": "Shipping company name must be at most 60 characters",
+        "trackingMax": "Tracking number must be at most 80 characters"
+      }
     }
   }
 }
