@@ -58,6 +58,11 @@ export const addToCart = async (t, userId, bookId) => {
       return { success: false, status: 404, message: t('cart.bookNotFound') };
     }
 
+    // A vendor can't buy their own books (fake sales / commission abuse).
+    if (variant.product?.vendor?.owner_id === userId) {
+      return { success: false, status: 403, message: t('cart.ownBook') };
+    }
+
     const cart = await cartRepo.getOrCreateCart(userId);
 
     try {

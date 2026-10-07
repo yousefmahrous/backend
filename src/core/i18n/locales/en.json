@@ -53,7 +53,8 @@
     "maxStock": "The maximum available quantity for this book is {{stock}}",
     "updateError": "An error occurred while updating the quantity",
     "removeSuccess": "Book removed from your cart",
-    "removeError": "An error occurred while removing from the cart"
+    "removeError": "An error occurred while removing from the cart",
+    "ownBook": "You can't buy your own books"
   },
   "favorite": {
     "customersOnly": "Favorites are only available for customers",
@@ -146,7 +147,8 @@
   },
   "payment": {
     "cartEmpty": "Your cart is empty, you can't proceed to payment",
-    "checkoutError": "An error occurred while creating the checkout session"
+    "checkoutError": "An error occurred while creating the checkout session",
+    "ownBooksInCart": "Your cart contains your own books. Remove them to continue"
   },
   "upload": {
     "missingFields": "fileName and fileType are required",

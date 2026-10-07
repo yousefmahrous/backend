@@ -53,7 +53,8 @@
     "maxStock": "أقصى كمية متاحة من الكتاب ده هي {{stock}}",
     "updateError": "حدث خطأ أثناء تحديث الكمية",
     "removeSuccess": "تم حذف الكتاب من العربية",
-    "removeError": "حدث خطأ أثناء الحذف من العربية"
+    "removeError": "حدث خطأ أثناء الحذف من العربية",
+    "ownBook": "مينفعش تشتري كتبك أنت"
   },
   "favorite": {
     "customersOnly": "المفضلة متاحة للعملاء فقط",
@@ -146,7 +147,8 @@
   },
   "payment": {
     "cartEmpty": "العربية فاضية، مينفعش تكمل دفع",
-    "checkoutError": "حدث خطأ أثناء إنشاء جلسة الدفع"
+    "checkoutError": "حدث خطأ أثناء إنشاء جلسة الدفع",
+    "ownBooksInCart": "العربية فيها كتب بتاعتك. شيلها عشان تكمّل"
   },
   "upload": {
     "missingFields": "يجب إرسال fileName و fileType",

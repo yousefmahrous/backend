@@ -134,6 +134,18 @@ describe('payment.service', () => {
       );
     });
 
+    it("rejects checkout when the cart holds one of the vendor's own books", async () => {
+      cartRepo.getOrCreateCart.mockResolvedValue({
+        items: [{ book_id: 1, variant: { product: { vendor: { owner_id: 5 } } } }],
+      });
+
+      const result = await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
+
+      expect(result).toEqual({ success: false, status: 400, message: 'payment.ownBooksInCart' });
+      expect(paymentRepo.createPendingOrderFromCart).not.toHaveBeenCalled();
+      expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
     it('passes the shipping address through to the order creation', async () => {
       cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ book_id: 1 }] });
       paymentRepo.findPendingOrderByUser.mockResolvedValue(null);

@@ -88,6 +88,35 @@ describe('cart.service', () => {
       expect(cartRepo.reserveAndAddItem).not.toHaveBeenCalled();
     });
 
+    it("refuses to add the vendor's own book and reserves nothing", async () => {
+      cartRepo.getVariantByBookId.mockResolvedValue({
+        id: 10,
+        product_id: 1,
+        stock: 5,
+        product: { id: 1, vendor: { owner_id: 5 } },
+      });
+
+      const result = await cartService.addToCart(t, 5, 1);
+
+      expect(result).toEqual({ success: false, status: 403, message: 'cart.ownBook' });
+      expect(cartRepo.reserveAndAddItem).not.toHaveBeenCalled();
+    });
+
+    it("still lets a different user add that vendor's book", async () => {
+      cartRepo.getVariantByBookId.mockResolvedValue({
+        id: 10,
+        product_id: 1,
+        stock: 5,
+        product: { id: 1, vendor: { owner_id: 99 } },
+      });
+      cartRepo.getOrCreateCart.mockResolvedValue(makeCart());
+      cartRepo.reserveAndAddItem.mockResolvedValue(undefined);
+
+      const result = await cartService.addToCart(t, 5, 1);
+
+      expect(result).toMatchObject({ success: true, status: 201 });
+    });
+
     it('returns 400 without crashing when the reservation fails due to out-of-stock', async () => {
       cartRepo.getVariantByBookId.mockResolvedValue({ id: 10, product_id: 1, stock: 0 });
       cartRepo.getOrCreateCart.mockResolvedValue(makeCart());

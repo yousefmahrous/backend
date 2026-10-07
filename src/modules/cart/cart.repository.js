@@ -7,7 +7,7 @@ export const getOrCreateCart = async (userId) => {
     create: { user_id: userId },
     include: {
       items: {
-        include: { variant: { include: { product: true } } },
+        include: { variant: { include: { product: { include: { vendor: { select: { owner_id: true } } } } } } },
         orderBy: { created_at: 'desc' }
       }
     }
@@ -128,5 +128,8 @@ export const clearCart = async (cartId) => {
 };
 
 export const getVariantByBookId = async (bookId) => {
-  return prisma.productVariant.findFirst({ where: { product_id: bookId } });
+  return prisma.productVariant.findFirst({
+    where: { product_id: bookId },
+    include: { product: { include: { vendor: { select: { owner_id: true } } } } }
+  });
 };

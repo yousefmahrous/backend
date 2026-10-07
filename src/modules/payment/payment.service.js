@@ -69,6 +69,12 @@ export const createCheckoutSession = async (t, lang, userId, shipping) => {
       return { success: false, status: 400, message: t('payment.cartEmpty') };
     }
 
+    // Re-checked here too: this is where money moves, and the book may have been
+    // added to the cart before the add-to-cart rule existed.
+    if (cart.items.some((item) => item.variant?.product?.vendor?.owner_id === userId)) {
+      return { success: false, status: 400, message: t('payment.ownBooksInCart') };
+    }
+
     const existingPending = await paymentRepo.findPendingOrderByUser(userId);
     if (existingPending) {
       if (existingPending.stripe_session_id) {

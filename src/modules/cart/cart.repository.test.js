@@ -146,7 +146,10 @@ describe('cart.repository', () => {
 
       const variant = await cartRepo.getVariantByBookId(1);
 
-      expect(prisma.productVariant.findFirst).toHaveBeenCalledWith({ where: { product_id: 1 } });
+      expect(prisma.productVariant.findFirst).toHaveBeenCalledWith({
+        where: { product_id: 1 },
+        include: { product: { include: { vendor: { select: { owner_id: true } } } } },
+      });
       expect(variant).toEqual({ id: 10, product_id: 1 });
     });
   });
