@@ -3,7 +3,7 @@ import { VENDOR_STATUS } from './vendor.constants.js';
 
 let platformVendorId = null;
 
-const OWNER_SELECT = { id: true, name: true, email: true };
+const OWNER_SELECT = { id: true, name: true, email: true, preferred_lang: true };
 
 export const getPlatformVendorId = async () => {
   if (platformVendorId) return platformVendorId;

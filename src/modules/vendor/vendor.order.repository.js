@@ -13,9 +13,11 @@ const VENDOR_ORDER_INCLUDE = {
       shipping_phone: true,
       shipping_address: true,
       shipping_city: true,
-      shipping_notes: true
+      shipping_notes: true,
+      user: { select: { name: true, email: true, preferred_lang: true } }
     }
   },
+  vendor: { select: { store_name: true } },
   items: { include: { book: true } }
 };
 

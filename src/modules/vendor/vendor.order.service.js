@@ -5,6 +5,7 @@ import {
   FULFILLMENT_TRANSITIONS
 } from './vendor.constants.js';
 import { pickLocalized } from '../../core/i18n/localized.js';
+import { addShipmentStatusEmailJob } from '../../core/email.queue.js';
 import logger from '../../core/logger.js';
 
 const serializeVendorOrder = (vendorOrder, lang) => ({
@@ -126,6 +127,27 @@ export const updateFulfillment = async (t, lang, vendorId, id, input) => {
     }
 
     const fresh = await vendorOrderRepo.findVendorOrderById(id, vendorId);
+
+    // Best effort: a failed email must never undo or fail the status change.
+    const customer = fresh.order.user;
+    if (customer?.email) {
+      try {
+        await addShipmentStatusEmailJob(
+          customer.email,
+          customer.name,
+          {
+            order_id: fresh.order_id,
+            store_name: fresh.vendor?.store_name ?? '',
+            status: fresh.fulfillment_status,
+            carrier: fresh.carrier,
+            tracking_number: fresh.tracking_number
+          },
+          customer.preferred_lang
+        );
+      } catch (err) {
+        logger.warn({ err }, 'Failed to queue shipment status email');
+      }
+    }
 
     return {
       success: true,

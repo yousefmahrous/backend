@@ -1,5 +1,6 @@
 import * as vendorRepo from './vendor.repository.js';
 import { VENDOR_STATUS, VENDOR_STATUSES, VENDOR_TRANSITIONS } from './vendor.constants.js';
+import { addVendorStatusEmailJob } from '../../core/email.queue.js';
 import logger from '../../core/logger.js';
 
 export const buildVendorSlug = (storeName, ownerId) => {
@@ -113,6 +114,18 @@ export const changeVendorStatus = async (t, id, newStatus) => {
     const updated = await vendorRepo.updateVendorStatus(id, vendor.status, newStatus);
     if (!updated) {
       return { success: false, status: 409, message: t('vendor.statusConflict') };
+    }
+    if (vendor.owner?.email) {
+      try {
+        await addVendorStatusEmailJob(
+          vendor.owner.email,
+          vendor.owner.name,
+          { store_name: vendor.store_name, from: vendor.status, to: newStatus },
+          vendor.owner.preferred_lang
+        );
+      } catch (err) {
+        logger.warn({ err }, 'Failed to queue vendor status email');
+      }
     }
 
     return {

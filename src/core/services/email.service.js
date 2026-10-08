@@ -382,3 +382,167 @@ export const sendRefundStatusEmail = async (userEmail, userName, request, lang) 
     logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل حالة الاسترجاع');
   }
 };
+
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+
+const VENDOR_STATUS_CONTENT = {
+  'pending->active': {
+    color: '#4CAF50',
+    ar: {
+      subject: '✅ تمت الموافقة على متجرك',
+      title: (name) => `مبروك يا ${name} 🎉`,
+      intro: (store) => `تمت الموافقة على متجرك <strong>${store}</strong>. تقدر الآن تضيف كتبك وتستقبل الأوردرات.`
+    },
+    en: {
+      subject: '✅ Your store has been approved',
+      title: (name) => `Congratulations, ${name} 🎉`,
+      intro: (store) => `Your store <strong>${store}</strong> has been approved. You can now add your books and receive orders.`
+    }
+  },
+  'pending->rejected': {
+    color: '#e53935',
+    ar: {
+      subject: '❌ لم تتم الموافقة على طلب متجرك',
+      title: (name) => `أهلاً ${name}`,
+      intro: (store) => `للأسف لم تتم الموافقة على طلب متجرك <strong>${store}</strong>. تقدر تقدّم طلب جديد بعد مراجعة بياناتك.`
+    },
+    en: {
+      subject: '❌ Your store application was not approved',
+      title: (name) => `Hello ${name}`,
+      intro: (store) => `Unfortunately your store <strong>${store}</strong> was not approved. You can submit a new application after reviewing your details.`
+    }
+  },
+  'active->suspended': {
+    color: '#fb8c00',
+    ar: {
+      subject: '⚠️ تم إيقاف متجرك مؤقتًا',
+      title: (name) => `أهلاً ${name}`,
+      intro: (store) => `تم إيقاف متجرك <strong>${store}</strong> مؤقتًا. لن تظهر كتبك ولن تستقبل أوردرات جديدة حتى إعادة التفعيل. تواصل معنا لو عندك أي استفسار.`
+    },
+    en: {
+      subject: '⚠️ Your store has been suspended',
+      title: (name) => `Hello ${name}`,
+      intro: (store) => `Your store <strong>${store}</strong> has been temporarily suspended. Your books are hidden and you won't receive new orders until it is reactivated. Contact us if you have any questions.`
+    }
+  },
+  'suspended->active': {
+    color: '#4CAF50',
+    ar: {
+      subject: '✅ تمت إعادة تفعيل متجرك',
+      title: (name) => `أهلاً ${name} 👋`,
+      intro: (store) => `تمت إعادة تفعيل متجرك <strong>${store}</strong>. كتبك ظاهرة من جديد وتقدر تستقبل الأوردرات.`
+    },
+    en: {
+      subject: '✅ Your store has been reactivated',
+      title: (name) => `Welcome back, ${name} 👋`,
+      intro: (store) => `Your store <strong>${store}</strong> has been reactivated. Your books are visible again and you can receive orders.`
+    }
+  }
+};
+
+export const sendVendorStatusEmail = async (userEmail, userName, vendor, lang) => {
+  const content = VENDOR_STATUS_CONTENT[`${vendor.from}->${vendor.to}`];
+  if (!content) return;
+
+  const safeLang = resolveLang(lang);
+  const c = content[safeLang];
+  const { dir, align } = DIR[safeLang];
+
+  try {
+    await resend.emails.send({
+      from: `${STORE_NAME[safeLang]} <onboarding@resend.dev>`,
+      to: userEmail.trim().toLowerCase(),
+      subject: c.subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; direction: ${dir}; text-align: ${align}; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; max-width: 500px; margin: 0 auto;">
+          <h2 style="color: ${content.color}; margin-bottom: 10px;">${c.title(escapeHtml(userName))}</h2>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">${c.intro(escapeHtml(vendor.store_name))}</p>
+        </div>
+      `
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل حالة البائع');
+  }
+};
+
+const SHIPMENT_STATUS_CONTENT = {
+  processing: {
+    color: '#1e88e5',
+    ar: {
+      subject: '📦 جاري تجهيز أوردرك',
+      title: (name) => `أهلاً ${name}`,
+      intro: (store) => `المتجر <strong>${store}</strong> بدأ تجهيز شحنتك.`
+    },
+    en: {
+      subject: '📦 Your order is being prepared',
+      title: (name) => `Hello ${name}`,
+      intro: (store) => `<strong>${store}</strong> has started preparing your shipment.`
+    }
+  },
+  shipped: {
+    color: '#8e24aa',
+    ar: {
+      subject: '🚚 تم شحن أوردرك',
+      title: (name) => `أهلاً ${name}`,
+      intro: (store) => `المتجر <strong>${store}</strong> شحن أوردرك وهو في الطريق إليك.`
+    },
+    en: {
+      subject: '🚚 Your order has been shipped',
+      title: (name) => `Hello ${name}`,
+      intro: (store) => `<strong>${store}</strong> has shipped your order and it is on its way.`
+    }
+  },
+  delivered: {
+    color: '#4CAF50',
+    ar: {
+      subject: '✅ تم تسليم أوردرك',
+      title: (name) => `أهلاً ${name} 🎉`,
+      intro: (store) => `تم تسليم شحنتك من المتجر <strong>${store}</strong>. نتمنى لك قراءة ممتعة!`
+    },
+    en: {
+      subject: '✅ Your order has been delivered',
+      title: (name) => `Hello ${name} 🎉`,
+      intro: (store) => `Your shipment from <strong>${store}</strong> has been delivered. Happy reading!`
+    }
+  }
+};
+
+const SHIPMENT_LABELS = {
+  ar: { carrier: 'شركة الشحن', tracking: 'رقم التتبع' },
+  en: { carrier: 'Shipping company', tracking: 'Tracking number' }
+};
+
+export const sendShipmentStatusEmail = async (userEmail, userName, shipment, lang) => {
+  const content = SHIPMENT_STATUS_CONTENT[shipment.status];
+  if (!content) return;
+
+  const safeLang = resolveLang(lang);
+  const c = content[safeLang];
+  const labels = SHIPMENT_LABELS[safeLang];
+  const { dir, align } = DIR[safeLang];
+
+  const details = [
+    shipment.carrier ? `<p style="margin: 4px 0;"><strong>${labels.carrier}:</strong> ${escapeHtml(shipment.carrier)}</p>` : '',
+    shipment.tracking_number
+      ? `<p style="margin: 4px 0;"><strong>${labels.tracking}:</strong> <span dir="ltr">${escapeHtml(shipment.tracking_number)}</span></p>`
+      : ''
+  ].join('');
+
+  try {
+    await resend.emails.send({
+      from: `${STORE_NAME[safeLang]} <onboarding@resend.dev>`,
+      to: userEmail.trim().toLowerCase(),
+      subject: `${c.subject} - #${shipment.order_id}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; direction: ${dir}; text-align: ${align}; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; max-width: 500px; margin: 0 auto;">
+          <h2 style="color: ${content.color}; margin-bottom: 10px;">${c.title(escapeHtml(userName))}</h2>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">${c.intro(escapeHtml(shipment.store_name))}</p>
+          <div style="font-size: 15px; color: #555;">${details}</div>
+        </div>
+      `
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل حالة الشحنة');
+  }
+};

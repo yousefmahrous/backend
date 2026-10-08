@@ -1,220 +1,269 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fakeT } from '../../test/helpers.js';
 
-vi.mock('./vendor.order.repository.js', () => ({
-  findVendorOrders: vi.fn(),
-  findVendorOrderById: vi.fn(),
-  transitionFulfillment: vi.fn(),
+vi.mock('./vendor.repository.js', () => ({
+  findVendorByOwnerId: vi.fn(),
+  findVendorById: vi.fn(),
+  createVendorApplication: vi.fn(),
+  resubmitVendorApplication: vi.fn(),
+  findAllVendors: vi.fn(),
+  updateVendorStatus: vi.fn(),
 }));
 
-const repo = await import('./vendor.order.repository.js');
-const service = await import('./vendor.order.service.js');
-const { updateFulfillmentSchema } = await import('./vendor.schema.js');
+vi.mock('../../core/email.queue.js', () => ({
+  addVendorStatusEmailJob: vi.fn(),
+}));
+
+const vendorRepo = await import('./vendor.repository.js');
+const { addVendorStatusEmailJob } = await import('../../core/email.queue.js');
+const vendorService = await import('./vendor.service.js');
 
 const t = fakeT;
 
-const makeVendorOrder = (overrides = {}) => ({
-  id: 3,
-  order_id: 10,
-  created_at: 'c',
-  fulfillment_status: 'pending',
-  carrier: null,
-  tracking_number: null,
-  shipped_at: null,
-  delivered_at: null,
-  order: {
-    id: 10,
-    status: 'paid',
-    paid_at: 'p',
-    shipping_name: 'Ali Hassan',
-    shipping_phone: '01012345678',
-    shipping_address: '12 Tahrir St',
-    shipping_city: 'Giza',
-    shipping_notes: null,
-  },
-  items: [
-    { book_id: 1, book: { title: { ar: 'كتاب', en: 'Book' } }, quantity: 2, unit_price: 50 },
-    { book_id: 2, book: { title: { ar: 'قلم', en: 'Pen' } }, quantity: 1, unit_price: 30 },
-  ],
+const makeVendor = (overrides = {}) => ({
+  id: 5,
+  owner_id: 9,
+  store_name: 'Dar Ali',
+  slug: 'dar-ali-9',
+  status: 'pending',
+  is_platform: false,
+  commission_bps: null,
+  created_at: 'a',
+  owner: { id: 9, name: 'Ali', email: 'ali@x.com' },
   ...overrides,
 });
 
-describe('vendor.order.service', () => {
+describe('vendor.service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('getMyOrders', () => {
-    it("serializes the shipping address, localized items and the vendor's subtotal", async () => {
-      repo.findVendorOrders.mockResolvedValue({ vendorOrders: [makeVendorOrder()], totalCount: 1 });
+  describe('buildVendorSlug', () => {
+    it('lowercases, replaces spaces and symbols with hyphens and appends the owner id', () => {
+      expect(vendorService.buildVendorSlug('Dar El-Shorouk & Sons!', 9)).toBe('dar-el-shorouk-sons-9');
+    });
 
-      const result = await service.getMyOrders(t, 'en', 7);
+    it('falls back to "store" when the name has no latin letters or digits (e.g. Arabic)', () => {
+      expect(vendorService.buildVendorSlug('دار الشروق', 9)).toBe('store-9');
+    });
+
+    it('caps the readable part at 40 characters without leaving a trailing hyphen', () => {
+      const slug = vendorService.buildVendorSlug('a'.repeat(39) + ' bbbbbbbb', 9);
+      expect(slug).toBe('a'.repeat(39) + '-9');
+    });
+  });
+
+  describe('applyAsVendor', () => {
+    it('creates a pending application with a generated slug for a user with no vendor yet', async () => {
+      vendorRepo.findVendorByOwnerId.mockResolvedValue(null);
+      vendorRepo.createVendorApplication.mockResolvedValue(makeVendor());
+
+      const result = await vendorService.applyAsVendor(t, 9, 'Dar Ali');
+
+      expect(vendorRepo.createVendorApplication).toHaveBeenCalledWith(9, 'Dar Ali', 'dar-ali-9');
+      expect(result.success).toBe(true);
+      expect(result.status).toBe(201);
+      expect(result.message).toBe('vendor.applied');
+      expect(result.data).toMatchObject({ id: 5, store_name: 'Dar Ali', status: 'pending' });
+    });
+
+    it.each(['pending', 'active', 'suspended'])(
+      'rejects with 409 when the user already has a %s vendor',
+      async (status) => {
+        vendorRepo.findVendorByOwnerId.mockResolvedValue(makeVendor({ status }));
+
+        const result = await vendorService.applyAsVendor(t, 9, 'Dar Ali');
+
+        expect(result).toEqual({ success: false, status: 409, message: 'vendor.alreadyExists' });
+        expect(vendorRepo.createVendorApplication).not.toHaveBeenCalled();
+        expect(vendorRepo.resubmitVendorApplication).not.toHaveBeenCalled();
+      }
+    );
+
+    it('lets a rejected user re-apply by resubmitting the same vendor row', async () => {
+      vendorRepo.findVendorByOwnerId.mockResolvedValue(makeVendor({ status: 'rejected' }));
+      vendorRepo.resubmitVendorApplication.mockResolvedValue(makeVendor({ store_name: 'New Name' }));
+
+      const result = await vendorService.applyAsVendor(t, 9, 'New Name');
+
+      expect(vendorRepo.resubmitVendorApplication).toHaveBeenCalledWith(5, 'New Name');
+      expect(vendorRepo.createVendorApplication).not.toHaveBeenCalled();
+      expect(result.status).toBe(201);
+    });
+
+    it('returns 409 when two requests race and the unique owner constraint fires', async () => {
+      vendorRepo.findVendorByOwnerId.mockResolvedValue(null);
+      vendorRepo.createVendorApplication.mockRejectedValue(Object.assign(new Error('dup'), { code: 'P2002' }));
+
+      const result = await vendorService.applyAsVendor(t, 9, 'Dar Ali');
+
+      expect(result).toEqual({ success: false, status: 409, message: 'vendor.alreadyExists' });
+    });
+
+    it('returns 500 on an unexpected error', async () => {
+      vendorRepo.findVendorByOwnerId.mockRejectedValue(new Error('db down'));
+
+      const result = await vendorService.applyAsVendor(t, 9, 'Dar Ali');
+
+      expect(result).toEqual({ success: false, status: 500, message: 'vendor.applyError' });
+    });
+  });
+
+  describe('getMyVendor', () => {
+    it('returns the vendor when the user has one', async () => {
+      vendorRepo.findVendorByOwnerId.mockResolvedValue(makeVendor({ status: 'active' }));
+
+      const result = await vendorService.getMyVendor(t, 9);
 
       expect(result.status).toBe(200);
-      const [item] = result.data.items;
-      expect(item.shipping).toEqual({
-        name: 'Ali Hassan',
-        phone: '01012345678',
-        address: '12 Tahrir St',
-        city: 'Giza',
-        notes: null,
+      expect(result.data).toMatchObject({ id: 5, status: 'active' });
+    });
+
+    it('returns null data (not an error) when the user has no vendor yet', async () => {
+      vendorRepo.findVendorByOwnerId.mockResolvedValue(null);
+
+      const result = await vendorService.getMyVendor(t, 9);
+
+      expect(result).toEqual({ success: true, status: 200, data: null });
+    });
+  });
+
+  describe('getAllVendorsAdmin', () => {
+    it('returns serialized vendors with owner info and pagination', async () => {
+      vendorRepo.findAllVendors.mockResolvedValue({ vendors: [makeVendor()], totalCount: 45 });
+
+      const result = await vendorService.getAllVendorsAdmin(t, 2, 20, 'pending');
+
+      expect(vendorRepo.findAllVendors).toHaveBeenCalledWith(20, 20, 'pending');
+      expect(result.data.items[0].owner).toEqual({ id: 9, name: 'Ali', email: 'ali@x.com' });
+      expect(result.data.pagination).toEqual({
+        totalCount: 45,
+        totalPages: 3,
+        currentPage: 2,
+        limit: 20,
+        hasNextPage: true,
+        hasPreviousPage: true,
       });
-      expect(item.items.map((i) => i.title)).toEqual(['Book', 'Pen']);
-      expect(item.subtotal).toBe(2 * 50 + 30);
     });
 
-    it('scopes the query to the given vendor and ignores an unknown status filter', async () => {
-      repo.findVendorOrders.mockResolvedValue({ vendorOrders: [], totalCount: 0 });
+    it('ignores an unknown status filter instead of passing it to the query', async () => {
+      vendorRepo.findAllVendors.mockResolvedValue({ vendors: [], totalCount: 0 });
 
-      await service.getMyOrders(t, 'en', 7, 2, 10, 'bogus');
+      await vendorService.getAllVendorsAdmin(t, 1, 20, 'hacked');
 
-      expect(repo.findVendorOrders).toHaveBeenCalledWith(7, 10, 10, undefined);
-    });
-
-    it('passes a valid fulfillment status filter through', async () => {
-      repo.findVendorOrders.mockResolvedValue({ vendorOrders: [], totalCount: 0 });
-
-      await service.getMyOrders(t, 'en', 7, 1, 20, 'shipped');
-
-      expect(repo.findVendorOrders).toHaveBeenCalledWith(7, 0, 20, 'shipped');
-    });
-
-    it('returns a 500 when the repository throws', async () => {
-      repo.findVendorOrders.mockRejectedValue(new Error('db down'));
-
-      const result = await service.getMyOrders(t, 'en', 7);
-
-      expect(result).toEqual({ success: false, status: 500, message: 'vendor.orders.loadError' });
+      expect(vendorRepo.findAllVendors).toHaveBeenCalledWith(0, 20, undefined);
     });
   });
 
-  describe('getMyOrderById', () => {
-    it("returns 404 for an order that isn't this vendor's", async () => {
-      repo.findVendorOrderById.mockResolvedValue(null);
+  describe('changeVendorStatus', () => {
+    it('returns 404 when the vendor does not exist', async () => {
+      vendorRepo.findVendorById.mockResolvedValue(null);
 
-      const result = await service.getMyOrderById(t, 'en', 7, 3);
+      const result = await vendorService.changeVendorStatus(t, 5, 'active');
 
-      expect(repo.findVendorOrderById).toHaveBeenCalledWith(3, 7);
-      expect(result).toEqual({ success: false, status: 404, message: 'vendor.orders.notFound' });
-    });
-  });
-
-  describe('updateFulfillment', () => {
-    it('returns 404 when the shipment is not found for this vendor', async () => {
-      repo.findVendorOrderById.mockResolvedValue(null);
-
-      const result = await service.updateFulfillment(t, 'en', 7, 3, { status: 'processing' });
-
-      expect(result.status).toBe(404);
-      expect(repo.transitionFulfillment).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: false, status: 404, message: 'vendor.notFound' });
     });
 
-    it('refuses to update when the order is under return or refund', async () => {
-      repo.findVendorOrderById.mockResolvedValue(
-        makeVendorOrder({ order: { ...makeVendorOrder().order, status: 'return_requested' } })
-      );
+    it("refuses to change the store's own vendor", async () => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ is_platform: true, status: 'active' }));
 
-      const result = await service.updateFulfillment(t, 'en', 7, 3, { status: 'processing' });
+      const result = await vendorService.changeVendorStatus(t, 1, 'suspended');
 
-      expect(result).toEqual({ success: false, status: 409, message: 'vendor.orders.orderNotActive' });
-      expect(repo.transitionFulfillment).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: false, status: 400, message: 'vendor.platformImmutable' });
+      expect(vendorRepo.updateVendorStatus).not.toHaveBeenCalled();
     });
 
     it.each([
-      ['pending', 'shipped'],
-      ['pending', 'delivered'],
-      ['processing', 'delivered'],
-      ['shipped', 'processing'],
-      ['delivered', 'shipped'],
-    ])('rejects the invalid transition %s -> %s', async (from, to) => {
-      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder({ fulfillment_status: from }));
+      ['pending', 'active'],
+      ['pending', 'rejected'],
+      ['active', 'suspended'],
+      ['suspended', 'active'],
+    ])('allows %s -> %s', async (from, to) => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ status: from }));
+      vendorRepo.updateVendorStatus.mockResolvedValue(true);
 
-      const result = await service.updateFulfillment(t, 'en', 7, 3, { status: to, carrier: 'Bosta' });
+      const result = await vendorService.changeVendorStatus(t, 5, to);
 
-      expect(result).toEqual({ success: false, status: 400, message: 'vendor.orders.invalidTransition' });
-      expect(repo.transitionFulfillment).not.toHaveBeenCalled();
+      expect(vendorRepo.updateVendorStatus).toHaveBeenCalledWith(5, from, to);
+      expect(result.success).toBe(true);
+      expect(result.status).toBe(200);
+      expect(result.message).toBe('vendor.statusUpdated');
+      expect(result.data.status).toBe(to);
     });
 
-    it('moves pending -> processing with a compare-and-set on the current status', async () => {
-      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder());
-      repo.transitionFulfillment.mockResolvedValue(true);
+    it('queues a status email to the vendor owner in their language', async () => {
+      vendorRepo.findVendorById.mockResolvedValue(
+        makeVendor({ status: 'pending', owner: { id: 9, name: 'Ali', email: 'ali@x.com', preferred_lang: 'en' } })
+      );
+      vendorRepo.updateVendorStatus.mockResolvedValue(true);
 
-      const result = await service.updateFulfillment(t, 'en', 7, 3, { status: 'processing' });
+      await vendorService.changeVendorStatus(t, 5, 'active');
 
-      expect(repo.transitionFulfillment).toHaveBeenCalledWith(3, 7, 'pending', { fulfillment_status: 'processing' });
-      expect(result).toMatchObject({ success: true, status: 200, message: 'vendor.orders.updated' });
+      expect(addVendorStatusEmailJob).toHaveBeenCalledWith(
+        'ali@x.com',
+        'Ali',
+        { store_name: 'Dar Ali', from: 'pending', to: 'active' },
+        'en'
+      );
     });
 
-    it('records carrier, tracking number and shipped_at when marking as shipped', async () => {
-      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder({ fulfillment_status: 'processing' }));
-      repo.transitionFulfillment.mockResolvedValue(true);
+    it('does not queue an email when the status change was rejected', async () => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ status: 'active' }));
 
-      await service.updateFulfillment(t, 'en', 7, 3, { status: 'shipped', carrier: 'Bosta', tracking_number: 'TRK1' });
+      await vendorService.changeVendorStatus(t, 5, 'rejected');
 
-      const [, , from, data] = repo.transitionFulfillment.mock.calls[0];
-      expect(from).toBe('processing');
-      expect(data).toMatchObject({ fulfillment_status: 'shipped', carrier: 'Bosta', tracking_number: 'TRK1' });
-      expect(data.shipped_at).toBeInstanceOf(Date);
+      expect(addVendorStatusEmailJob).not.toHaveBeenCalled();
     });
 
-    it('stores a null tracking number when none is given', async () => {
-      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder({ fulfillment_status: 'processing' }));
-      repo.transitionFulfillment.mockResolvedValue(true);
+    it('does not queue an email when someone else changed the status first', async () => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ status: 'pending' }));
+      vendorRepo.updateVendorStatus.mockResolvedValue(false);
 
-      await service.updateFulfillment(t, 'en', 7, 3, { status: 'shipped', carrier: 'Bosta' });
+      await vendorService.changeVendorStatus(t, 5, 'active');
 
-      expect(repo.transitionFulfillment.mock.calls[0][3].tracking_number).toBeNull();
+      expect(addVendorStatusEmailJob).not.toHaveBeenCalled();
     });
 
-    it('sets delivered_at when marking as delivered', async () => {
-      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder({ fulfillment_status: 'shipped' }));
-      repo.transitionFulfillment.mockResolvedValue(true);
+    it('still succeeds when queueing the email fails', async () => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ status: 'pending' }));
+      vendorRepo.updateVendorStatus.mockResolvedValue(true);
+      addVendorStatusEmailJob.mockRejectedValue(new Error('redis down'));
 
-      await service.updateFulfillment(t, 'en', 7, 3, { status: 'delivered' });
+      const result = await vendorService.changeVendorStatus(t, 5, 'active');
 
-      const data = repo.transitionFulfillment.mock.calls[0][3];
-      expect(data.fulfillment_status).toBe('delivered');
-      expect(data.delivered_at).toBeInstanceOf(Date);
+      expect(result).toMatchObject({ success: true, status: 200 });
     });
 
-    it('returns 409 when someone else changed the shipment first', async () => {
-      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder());
-      repo.transitionFulfillment.mockResolvedValue(false);
+    it.each([
+      ['pending', 'suspended'],
+      ['active', 'rejected'],
+      ['active', 'active'],
+      ['rejected', 'active'],
+      ['suspended', 'rejected'],
+    ])('rejects %s -> %s with 400', async (from, to) => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ status: from }));
 
-      const result = await service.updateFulfillment(t, 'en', 7, 3, { status: 'processing' });
+      const result = await vendorService.changeVendorStatus(t, 5, to);
 
-      expect(result).toEqual({ success: false, status: 409, message: 'vendor.orders.statusConflict' });
+      expect(result).toEqual({ success: false, status: 400, message: 'vendor.invalidTransition' });
+      expect(vendorRepo.updateVendorStatus).not.toHaveBeenCalled();
     });
 
-    it('returns a 500 when something throws unexpectedly', async () => {
-      repo.findVendorOrderById.mockRejectedValue(new Error('db down'));
+    it('returns 409 when someone else changed the status in between (compare-and-set fails)', async () => {
+      vendorRepo.findVendorById.mockResolvedValue(makeVendor({ status: 'pending' }));
+      vendorRepo.updateVendorStatus.mockResolvedValue(false);
 
-      const result = await service.updateFulfillment(t, 'en', 7, 3, { status: 'processing' });
+      const result = await vendorService.changeVendorStatus(t, 5, 'active');
 
-      expect(result).toEqual({ success: false, status: 500, message: 'vendor.orders.updateError' });
-    });
-  });
-
-  describe('updateFulfillmentSchema', () => {
-    const parse = (body) => updateFulfillmentSchema(t).safeParse(body);
-
-    it('requires a carrier when marking as shipped', () => {
-      const result = parse({ status: 'shipped' });
-      expect(result.error.flatten().fieldErrors.carrier).toEqual(['vendor.orders.validation.carrierRequired']);
+      expect(result).toEqual({ success: false, status: 409, message: 'vendor.statusConflict' });
     });
 
-    it('treats a blank carrier as missing', () => {
-      expect(parse({ status: 'shipped', carrier: '   ' }).success).toBe(false);
-    });
+    it('returns 500 on an unexpected error', async () => {
+      vendorRepo.findVendorById.mockRejectedValue(new Error('db down'));
 
-    it('does not require a carrier for other statuses', () => {
-      expect(parse({ status: 'processing' }).success).toBe(true);
-      expect(parse({ status: 'delivered', tracking_number: '' }).success).toBe(true);
-    });
+      const result = await vendorService.changeVendorStatus(t, 5, 'active');
 
-    it('rejects "pending" and unknown statuses as a target', () => {
-      expect(parse({ status: 'pending' }).success).toBe(false);
-      expect(parse({ status: 'cancelled' }).success).toBe(false);
+      expect(result).toEqual({ success: false, status: 500, message: 'vendor.updateError' });
     });
   });
 });
