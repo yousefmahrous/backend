@@ -1,4 +1,5 @@
 import prisma from '../../core/db.js';
+import { buildSnapshot, parseDefaultBps } from '../commission/commission.js';
 
 export const findPendingOrderByUser = async (userId) => {
   return prisma.order.findFirst({
@@ -82,6 +83,26 @@ export const findOrderBySessionId = async (sessionId) => {
   });
 };
 
+const freezeCommissionSnapshot = async (tx, orderId) => {
+  const setting = await tx.platformSetting.findUnique({ where: { key: 'default_commission_bps' } });
+  const defaultBps = parseDefaultBps(setting?.value);
+
+  const vendorOrders = await tx.vendorOrder.findMany({
+    where: { order_id: orderId },
+    include: {
+      vendor: { select: { is_platform: true, commission_bps: true } },
+      items: { select: { unit_price: true, quantity: true } }
+    }
+  });
+
+  for (const vendorOrder of vendorOrders) {
+    await tx.vendorOrder.updateMany({
+      where: { id: vendorOrder.id, gross_amount: null },
+      data: buildSnapshot(vendorOrder.items, vendorOrder.vendor, defaultBps)
+    });
+  }
+};
+
 export const markOrderPaid = async (orderId, paymentIntentId) => {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.update({
@@ -96,6 +117,8 @@ export const markOrderPaid = async (orderId, paymentIntentId) => {
     if (order.user?.cart) {
       await tx.cartItem.deleteMany({ where: { cart_id: order.user.cart.id } });
     }
+
+    await freezeCommissionSnapshot(tx, orderId);
 
     return order;
   });

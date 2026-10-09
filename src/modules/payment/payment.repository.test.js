@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const tx = {
   order: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-  vendorOrder: { create: vi.fn() },
+  vendorOrder: { create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  platformSetting: { findUnique: vi.fn() },
+  cartItem: { deleteMany: vi.fn() },
   orderItem: { createMany: vi.fn() },
   cart: { findUnique: vi.fn() },
   cartItem: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
@@ -103,6 +105,85 @@ describe('payment.repository', () => {
         [2, 101],
         [3, 100],
       ]);
+    });
+  });
+
+  describe('markOrderPaid', () => {
+    const vendorOrder = (overrides = {}) => ({
+      id: 100,
+      vendor: { is_platform: false, commission_bps: null },
+      items: [{ unit_price: 10000, quantity: 2 }],
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      tx.order.update.mockResolvedValue({ id: 1, user: { cart: null }, items: [] });
+      tx.platformSetting.findUnique.mockResolvedValue({ key: 'default_commission_bps', value: 1000 });
+      tx.vendorOrder.findMany.mockResolvedValue([vendorOrder()]);
+    });
+
+    it('freezes gross, commission and net per vendor order using the platform default rate', async () => {
+      await paymentRepo.markOrderPaid(1, 'pi_1');
+
+      expect(tx.vendorOrder.updateMany).toHaveBeenCalledWith({
+        where: { id: 100, gross_amount: null },
+        data: { commission_bps: 1000, gross_amount: 20000, commission_amount: 2000, net_amount: 18000 },
+      });
+    });
+
+    it("uses the vendor's own rate over the platform default", async () => {
+      tx.vendorOrder.findMany.mockResolvedValue([
+        vendorOrder({ vendor: { is_platform: false, commission_bps: 500 } }),
+      ]);
+
+      await paymentRepo.markOrderPaid(1, 'pi_1');
+
+      expect(tx.vendorOrder.updateMany.mock.calls[0][0].data).toMatchObject({
+        commission_bps: 500,
+        commission_amount: 1000,
+        net_amount: 19000,
+      });
+    });
+
+    it('takes no commission from the store\'s own vendor', async () => {
+      tx.vendorOrder.findMany.mockResolvedValue([
+        vendorOrder({ vendor: { is_platform: true, commission_bps: null } }),
+      ]);
+
+      await paymentRepo.markOrderPaid(1, 'pi_1');
+
+      expect(tx.vendorOrder.updateMany.mock.calls[0][0].data).toMatchObject({
+        commission_bps: 0,
+        commission_amount: 0,
+        net_amount: 20000,
+      });
+    });
+
+    it('falls back to 10% when the platform setting is missing', async () => {
+      tx.platformSetting.findUnique.mockResolvedValue(null);
+
+      await paymentRepo.markOrderPaid(1, 'pi_1');
+
+      expect(tx.vendorOrder.updateMany.mock.calls[0][0].data.commission_bps).toBe(1000);
+    });
+
+    it('snapshots every vendor of a multi-vendor order separately', async () => {
+      tx.vendorOrder.findMany.mockResolvedValue([
+        vendorOrder({ id: 100 }),
+        vendorOrder({ id: 101, items: [{ unit_price: 5000, quantity: 1 }] }),
+      ]);
+
+      await paymentRepo.markOrderPaid(1, 'pi_1');
+
+      expect(tx.vendorOrder.updateMany).toHaveBeenCalledTimes(2);
+      expect(tx.vendorOrder.updateMany.mock.calls[1][0].where.id).toBe(101);
+      expect(tx.vendorOrder.updateMany.mock.calls[1][0].data.gross_amount).toBe(5000);
+    });
+
+    it('only ever writes to snapshots that are still empty', async () => {
+      await paymentRepo.markOrderPaid(1, 'pi_1');
+
+      expect(tx.vendorOrder.updateMany.mock.calls[0][0].where.gross_amount).toBeNull();
     });
   });
 

@@ -24,6 +24,7 @@ model User {
   reviews                Review[]
   orders                 Order[]
   refundRequests         RefundRequest[]
+  payoutsCreated         Payout[]  @relation("PayoutCreatedBy")
   tickets                Ticket[]
   vendor                 Vendor?
 
@@ -115,6 +116,7 @@ model Vendor {
 
   books          Book[]
   vendorOrders   VendorOrder[]
+  payouts        Payout[]
 
   @@map("vendors")
 }
@@ -162,6 +164,17 @@ model VendorOrder {
   tracking_number    String?
   shipped_at         DateTime?
   delivered_at       DateTime?
+
+  // Money snapshot, frozen when the order is paid so later commission-rate
+  // changes never rewrite history. All amounts are in piastres.
+  commission_bps     Int?
+  gross_amount       Int?
+  commission_amount  Int?
+  net_amount         Int?
+
+  payout_id          Int?
+  payout             Payout?    @relation(fields: [payout_id], references: [id], onDelete: SetNull)
+
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt
 
@@ -169,7 +182,26 @@ model VendorOrder {
 
   @@unique([order_id, vendor_id])
   @@index([vendor_id])
+  @@index([payout_id])
   @@map("vendor_orders")
+}
+
+model Payout {
+  id            Int           @id @default(autoincrement())
+  vendor_id     Int
+  vendor        Vendor        @relation(fields: [vendor_id], references: [id], onDelete: Restrict)
+  amount        Int
+  currency      String        @default("egp")
+  reference     String?
+  note          String?
+  created_by_id Int?
+  created_by    User?         @relation("PayoutCreatedBy", fields: [created_by_id], references: [id], onDelete: SetNull)
+  created_at    DateTime      @default(now())
+
+  vendorOrders  VendorOrder[]
+
+  @@index([vendor_id])
+  @@map("payouts")
 }
 
 model RefundRequest {
