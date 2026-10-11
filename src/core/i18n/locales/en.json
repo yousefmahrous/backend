@@ -218,6 +218,27 @@
         "carrierMax": "Shipping company name must be at most 60 characters",
         "trackingMax": "Tracking number must be at most 80 characters"
       }
+    },
+    "earnings": {
+      "loadError": "An error occurred while loading your earnings"
+    },
+    "payouts": {
+      "loadError": "An error occurred while loading your payouts"
+    }
+  },
+  "payout": {
+    "loadError": "An error occurred while loading payouts",
+    "invalidId": "Invalid vendor id",
+    "vendorNotFound": "Vendor not found",
+    "platformVendor": "The store's own vendor has no payouts",
+    "nothingAvailable": "This vendor has no available balance to pay out",
+    "conflict": "The balance changed while recording the payout, please refresh and try again",
+    "recorded": "Payout recorded successfully",
+    "createError": "An error occurred while recording the payout",
+    "validation": {
+      "referenceRequired": "Transfer reference is required",
+      "referenceMax": "Reference must be at most 100 characters",
+      "noteMax": "Note must be at most 300 characters"
     }
   }
 }

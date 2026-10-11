@@ -11,6 +11,7 @@ import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 import requireVendor from '../../core/middlewares/requireVendor.middleware.js';
 import * as vendorBookService from '../../modules/vendor/vendor.book.service.js';
 import * as vendorOrderService from '../../modules/vendor/vendor.order.service.js';
+import * as payoutService from '../../modules/payout/payout.service.js';
 import { validateAdd, validateEdit } from '../../core/middlewares/validation.js';
 
 const router = express.Router();
@@ -93,6 +94,17 @@ router.put('/books/:id', requireVendor, doubleCsrfProtection, validateEdit, asyn
 
 router.delete('/books/:id', requireVendor, doubleCsrfProtection, async (req, res) => {
   const { status, ...response } = await vendorBookService.deleteMyBook(req.t, req.vendor.id, req.params.id);
+  res.status(status).json(response);
+});
+
+router.get('/earnings', requireVendor, async (req, res) => {
+  const { status, ...response } = await payoutService.getEarnings(req.t, req.vendor);
+  res.status(status).json(response);
+});
+
+router.get('/payouts', requireVendor, async (req, res) => {
+  const { page, limit } = req.query;
+  const { status, ...response } = await payoutService.getMyPayouts(req.t, req.vendor.id, page, limit);
   res.status(status).json(response);
 });
 
