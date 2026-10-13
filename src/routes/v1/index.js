@@ -13,6 +13,7 @@ import ticketRoutes from './ticket.routes.js';
 import csrfRoutes from './csrf.routes.js';
 import vendorRoutes from './vendor.routes.js';
 import payoutRoutes from './payout.routes.js';
+import settingsRoutes from './settings.routes.js';
 
 
 const router = express.Router();
@@ -31,5 +32,6 @@ router.use('/tickets', ticketRoutes);
 router.use('/csrf-token', csrfRoutes);
 router.use('/vendors', vendorRoutes);
 router.use('/payouts', payoutRoutes);
+router.use('/settings', settingsRoutes);
 
 export default router;

@@ -240,5 +240,18 @@
       "referenceMax": "Reference must be at most 100 characters",
       "noteMax": "Note must be at most 300 characters"
     }
+  },
+  "settings": {
+    "loadError": "An error occurred while loading settings",
+    "updated": "Settings updated successfully",
+    "updateError": "An error occurred while updating settings",
+    "invalidId": "Invalid vendor id",
+    "vendorNotFound": "Vendor not found",
+    "platformVendor": "The store's own vendor has no commission",
+    "validation": {
+      "bpsInvalid": "Commission must be between 0% and 100%",
+      "holdDaysInvalid": "Hold period must be a whole number of days between 0 and 90",
+      "nothingToUpdate": "Nothing to update"
+    }
   }
 }
