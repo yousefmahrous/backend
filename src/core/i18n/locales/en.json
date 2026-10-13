@@ -143,7 +143,10 @@
     "stripeFailed": "The refund failed on the payment gateway's side, try again or check the Stripe account",
     "completedMessage": "Refund completed successfully, the money will return to the customer within a few days depending on their bank",
     "completeError": "An error occurred while completing the refund",
-    "invalidRequestId": "Invalid request number"
+    "invalidRequestId": "Invalid request number",
+    "shipmentNotFound": "This shipment was not found in the order",
+    "shipmentRequired": "Please choose which shipment you want to return",
+    "alreadyRefunded": "This shipment has already been refunded"
   },
   "payment": {
     "cartEmpty": "Your cart is empty, you can't proceed to payment",
@@ -224,6 +227,9 @@
     },
     "payouts": {
       "loadError": "An error occurred while loading your payouts"
+    },
+    "returns": {
+      "loadError": "An error occurred while loading return requests"
     }
   },
   "payout": {

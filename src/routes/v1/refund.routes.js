@@ -9,14 +9,26 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.post('/', doubleCsrfProtection, async (req, res) => {
-  const { order_id, reason } = req.body;
+  const { order_id, reason, vendor_order_id } = req.body;
   const orderId = parseInt(order_id);
+  const vendorOrderId = vendor_order_id === undefined || vendor_order_id === null ? undefined : parseInt(vendor_order_id);
 
   if (Number.isNaN(orderId)) {
     return res.status(400).json({ success: false, message: req.t('order.invalidId') });
   }
 
-  const { status, ...response } = await refundService.requestRefund(req.t, req.lang, orderId, req.user.id, reason);
+  if (vendorOrderId !== undefined && Number.isNaN(vendorOrderId)) {
+    return res.status(400).json({ success: false, message: req.t('refund.shipmentNotFound') });
+  }
+
+  const { status, ...response } = await refundService.requestRefund(
+    req.t,
+    req.lang,
+    orderId,
+    req.user.id,
+    reason,
+    vendorOrderId
+  );
   res.status(status).json(response);
 });
 

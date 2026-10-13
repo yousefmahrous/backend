@@ -546,3 +546,38 @@ export const sendShipmentStatusEmail = async (userEmail, userName, shipment, lan
     logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل حالة الشحنة');
   }
 };
+
+export const sendVendorReturnRequestEmail = async (userEmail, userName, info, lang) => {
+  const safeLang = resolveLang(lang);
+  const { dir, align } = DIR[safeLang];
+  const amount = info.amount ? (info.amount / 100).toFixed(2) : null;
+
+  const content = {
+    ar: {
+      subject: `↩️ طلب استرجاع جديد - أوردر #${info.order_id}`,
+      title: `أهلاً ${escapeHtml(userName)}`,
+      body: `عميل طلب استرجاع شحنتك من الأوردر #${info.order_id} في متجر <strong>${escapeHtml(info.store_name)}</strong>${amount ? ` بقيمة <strong>${amount} ج.م</strong>` : ''}. الأدمن هيراجع الطلب، وفلوس الشحنة اتجمّدت لحد القرار.`
+    },
+    en: {
+      subject: `↩️ New return request - order #${info.order_id}`,
+      title: `Hello ${escapeHtml(userName)}`,
+      body: `A customer requested a return of your shipment in order #${info.order_id} at <strong>${escapeHtml(info.store_name)}</strong>${amount ? ` worth <strong>${amount} EGP</strong>` : ''}. An admin will review it, and the shipment's money is frozen until a decision is made.`
+    }
+  }[safeLang];
+
+  try {
+    await resend.emails.send({
+      from: `${STORE_NAME[safeLang]} <onboarding@resend.dev>`,
+      to: userEmail.trim().toLowerCase(),
+      subject: content.subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; direction: ${dir}; text-align: ${align}; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; max-width: 500px; margin: 0 auto;">
+          <h2 style="color: #fb8c00; margin-bottom: 10px;">${content.title}</h2>
+          <p style="font-size: 16px; color: #333; line-height: 1.6;">${content.body}</p>
+        </div>
+      `
+    });
+  } catch (error) {
+    logger.error({ err: error }, '[Resend API Error] فشل إرسال إيميل طلب الاسترجاع للبائع');
+  }
+};

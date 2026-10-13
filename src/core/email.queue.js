@@ -49,3 +49,7 @@ export const addVendorStatusEmailJob = async (email, name, vendor, lang = 'ar') 
 export const addShipmentStatusEmailJob = async (email, name, shipment, lang = 'ar') => {
   await emailQueue.add('shipment-status-email', { email, name, shipment, lang });
 };
+
+export const addVendorReturnEmailJob = async (email, name, info, lang = 'ar') => {
+  await emailQueue.add('vendor-return-email', { email, name, info, lang });
+};

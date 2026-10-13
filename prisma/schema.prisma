@@ -175,6 +175,12 @@ model VendorOrder {
   payout_id          Int?
   payout             Payout?    @relation(fields: [payout_id], references: [id], onDelete: SetNull)
 
+  // Return state of THIS shipment only: null | requested | approved | refunded.
+  // Other vendors' shipments in the same order are unaffected.
+  return_status      String?
+  refunded_at        DateTime?
+  refundRequests     RefundRequest[]
+
   created_at         DateTime   @default(now())
   updated_at         DateTime   @updatedAt
 
@@ -217,6 +223,13 @@ model RefundRequest {
   reviewed_at DateTime?
   updated_at  DateTime  @updatedAt
 
+  // The shipment (one vendor's part of the order) being returned.
+  // NULL on legacy requests, which cover the whole order.
+  vendor_order_id Int?
+  vendor_order    VendorOrder? @relation(fields: [vendor_order_id], references: [id], onDelete: SetNull)
+  refund_amount   Int?
+
+  @@index([vendor_order_id])
   @@map("refund_requests")
 }
 

@@ -1,5 +1,7 @@
 import prisma from '../../core/db.js';
 
+const OPEN_RETURN_STATUSES = ['requested', 'approved'];
+
 const sumNet = async (where) => {
   const result = await prisma.vendorOrder.aggregate({ _sum: { net_amount: true }, where });
   return result._sum.net_amount ?? 0;
@@ -11,13 +13,14 @@ const buildBucketWheres = (maturityCutoff, scope = {}) => {
   const matured = { fulfillment_status: 'delivered', order: { paid_at: { lte: maturityCutoff } } };
 
   return {
-    pending: { ...unpaid, order: { ...paidOrder, status: 'paid' }, NOT: matured },
+    pending: { ...unpaid, return_status: null, order: { ...paidOrder, status: 'paid' }, NOT: matured },
     available: {
       ...unpaid,
+      return_status: null,
       fulfillment_status: 'delivered',
       order: { status: 'paid', paid_at: { lte: maturityCutoff } }
     },
-    onHold: { ...unpaid, order: { ...paidOrder, status: 'return_requested' } }
+    onHold: { ...unpaid, return_status: { in: OPEN_RETURN_STATUSES }, order: paidOrder }
   };
 };
 

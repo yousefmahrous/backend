@@ -67,6 +67,7 @@ describe('order.service', () => {
           id: 3,
           vendor: { id: 7, store_name: 'Cairo Books' },
           fulfillment_status: 'shipped',
+          return_status: null,
           carrier: 'Bosta',
           tracking_number: 'TRK1',
           shipped_at: 's',

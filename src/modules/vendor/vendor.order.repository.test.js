@@ -63,7 +63,7 @@ describe('vendor.order.repository', () => {
 
       expect(ok).toBe(true);
       expect(prisma.vendorOrder.updateMany).toHaveBeenCalledWith({
-        where: { id: 3, vendor_id: 7, fulfillment_status: 'pending', order: { status: 'paid' } },
+        where: { id: 3, vendor_id: 7, fulfillment_status: 'pending', return_status: null, order: { status: 'paid' } },
         data: { fulfillment_status: 'processing' },
       });
     });

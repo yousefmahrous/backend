@@ -9,7 +9,8 @@ import {
   sendPaymentFailedEmail,
   sendRefundStatusEmail,
   sendVendorStatusEmail,
-  sendShipmentStatusEmail
+  sendShipmentStatusEmail,
+  sendVendorReturnRequestEmail
 } from './services/email.service.js';
 
 const emailWorker = new Worker('email-queue', async (job) => {
@@ -47,6 +48,10 @@ const emailWorker = new Worker('email-queue', async (job) => {
   else if (job.name === 'shipment-status-email') {
     const { email, name, shipment, lang } = job.data;
     await sendShipmentStatusEmail(email, name, shipment, lang);
+  }
+  else if (job.name === 'vendor-return-email') {
+    const { email, name, info, lang } = job.data;
+    await sendVendorReturnRequestEmail(email, name, info, lang);
   }
 
 }, {

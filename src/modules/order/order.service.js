@@ -15,6 +15,7 @@ const serializeShipment = (vendorOrder, lang) => ({
     ? { id: vendorOrder.vendor.id, store_name: vendorOrder.vendor.store_name }
     : null,
   fulfillment_status: vendorOrder.fulfillment_status,
+  return_status: vendorOrder.return_status ?? null,
   carrier: vendorOrder.carrier,
   tracking_number: vendorOrder.tracking_number,
   shipped_at: vendorOrder.shipped_at,

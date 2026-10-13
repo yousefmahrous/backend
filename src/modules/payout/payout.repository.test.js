@@ -55,10 +55,19 @@ describe('payout.repository', () => {
       });
     });
 
-    it('freezes money on orders with an open return', async () => {
+    it('freezes money on shipments with an open return, requested or approved', async () => {
       await repo.getEarningsTotals(7, CUTOFF);
 
-      expect(prisma.vendorOrder.aggregate.mock.calls[2][0].where.order.status).toBe('return_requested');
+      expect(prisma.vendorOrder.aggregate.mock.calls[2][0].where.return_status).toEqual({
+        in: ['requested', 'approved'],
+      });
+    });
+
+    it('never counts a shipment with any return state as pending or available', async () => {
+      await repo.getEarningsTotals(7, CUTOFF);
+
+      expect(prisma.vendorOrder.aggregate.mock.calls[0][0].where.return_status).toBeNull();
+      expect(prisma.vendorOrder.aggregate.mock.calls[1][0].where.return_status).toBeNull();
     });
 
     it('takes the paid-out total from the payouts table and defaults empty sums to 0', async () => {

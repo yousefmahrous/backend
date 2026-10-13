@@ -243,7 +243,7 @@ describe('payment.service', () => {
       stripe.webhooks.constructEvent.mockReturnValue({
         id: 'evt_3',
         type: 'charge.refunded',
-        data: { object: { payment_intent: 'pi_999' } },
+        data: { object: { payment_intent: 'pi_999', refunded: true } },
       });
       redisClient.get.mockResolvedValue(null);
       refundRepo.markOrderRefundedFromWebhook.mockResolvedValue({ id: 12 });
@@ -251,6 +251,20 @@ describe('payment.service', () => {
       const result = await paymentService.handleWebhookEvent('raw-body', 'sig');
 
       expect(refundRepo.markOrderRefundedFromWebhook).toHaveBeenCalledWith('pi_999');
+      expect(result).toEqual({ success: true, status: 200 });
+    });
+
+    it('ignores a PARTIAL refund (one vendor shipment) so the whole order is not marked refunded', async () => {
+      stripe.webhooks.constructEvent.mockReturnValue({
+        id: 'evt_partial',
+        type: 'charge.refunded',
+        data: { object: { payment_intent: 'pi_999', refunded: false, amount_refunded: 5000 } },
+      });
+      redisClient.get.mockResolvedValue(null);
+
+      const result = await paymentService.handleWebhookEvent('raw-body', 'sig');
+
+      expect(refundRepo.markOrderRefundedFromWebhook).not.toHaveBeenCalled();
       expect(result).toEqual({ success: true, status: 200 });
     });
 
