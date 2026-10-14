@@ -49,8 +49,6 @@ export const findVendorOrderById = async (id, vendorId) => {
   });
 };
 
-// Compare-and-set: only applies if the shipment is still in `fromStatus`
-// and neither the shipment nor its order is under a return/refund.
 export const transitionFulfillment = async (id, vendorId, fromStatus, data) => {
   const result = await prisma.vendorOrder.updateMany({
     where: {
@@ -63,4 +61,8 @@ export const transitionFulfillment = async (id, vendorId, fromStatus, data) => {
     data
   });
   return result.count > 0;
+};
+
+export const findPlatformVendor = async () => {
+  return prisma.vendor.findFirst({ where: { is_platform: true }, select: { id: true } });
 };

@@ -5,6 +5,7 @@ vi.mock('./vendor.order.repository.js', () => ({
   findVendorOrders: vi.fn(),
   findVendorOrderById: vi.fn(),
   transitionFulfillment: vi.fn(),
+  findPlatformVendor: vi.fn(),
 }));
 
 vi.mock('../../core/email.queue.js', () => ({
@@ -275,6 +276,48 @@ describe('vendor.order.service', () => {
     it('rejects "pending" and unknown statuses as a target', () => {
       expect(parse({ status: 'pending' }).success).toBe(false);
       expect(parse({ status: 'cancelled' }).success).toBe(false);
+    });
+  });
+
+  describe('platform store shipments (admin)', () => {
+    beforeEach(() => {
+      repo.findPlatformVendor.mockResolvedValue({ id: 1 });
+    });
+
+    it("lists the store's own shipments, always scoped to the platform vendor", async () => {
+      repo.findVendorOrders.mockResolvedValue({ vendorOrders: [], totalCount: 0 });
+
+      const result = await service.getPlatformOrders(t, 'en', 1, 20, 'shipped');
+
+      expect(repo.findVendorOrders).toHaveBeenCalledWith(1, 0, 20, 'shipped');
+      expect(result.status).toBe(200);
+    });
+
+    it("updates a shipment only within the platform vendor's own shipments", async () => {
+      repo.findVendorOrderById.mockResolvedValue(makeVendorOrder());
+      repo.transitionFulfillment.mockResolvedValue(true);
+
+      await service.updatePlatformFulfillment(t, 'en', 3, { status: 'processing' });
+
+      expect(repo.findVendorOrderById).toHaveBeenCalledWith(3, 1);
+      expect(repo.transitionFulfillment.mock.calls[0].slice(0, 2)).toEqual([3, 1]);
+    });
+
+    it("cannot reach another vendor's shipment (it simply isn't found)", async () => {
+      repo.findVendorOrderById.mockResolvedValue(null);
+
+      const result = await service.updatePlatformFulfillment(t, 'en', 55, { status: 'processing' });
+
+      expect(result).toEqual({ success: false, status: 404, message: 'vendor.orders.notFound' });
+      expect(repo.transitionFulfillment).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 when there is no platform vendor', async () => {
+      repo.findPlatformVendor.mockResolvedValue(null);
+
+      const result = await service.getPlatformOrders(t, 'en');
+
+      expect(result).toEqual({ success: false, status: 404, message: 'vendor.orders.platformNotFound' });
     });
   });
 });

@@ -12,6 +12,7 @@ const serializeVendorOrder = (vendorOrder, lang) => ({
   id: vendorOrder.id,
   order_id: vendorOrder.order_id,
   order_status: vendorOrder.order.status,
+  return_status: vendorOrder.return_status ?? null,
   paid_at: vendorOrder.order.paid_at,
   created_at: vendorOrder.created_at,
   fulfillment_status: vendorOrder.fulfillment_status,
@@ -94,7 +95,7 @@ export const updateFulfillment = async (t, lang, vendorId, id, input) => {
       return { success: false, status: 404, message: t('vendor.orders.notFound') };
     }
 
-    if (vendorOrder.order.status !== 'paid') {
+    if (vendorOrder.return_status || vendorOrder.order.status !== 'paid') {
       return { success: false, status: 409, message: t('vendor.orders.orderNotActive') };
     }
 
@@ -128,7 +129,6 @@ export const updateFulfillment = async (t, lang, vendorId, id, input) => {
 
     const fresh = await vendorOrderRepo.findVendorOrderById(id, vendorId);
 
-    // Best effort: a failed email must never undo or fail the status change.
     const customer = fresh.order.user;
     if (customer?.email) {
       try {
@@ -160,3 +160,22 @@ export const updateFulfillment = async (t, lang, vendorId, id, input) => {
     return { success: false, status: 500, message: t('vendor.orders.updateError') };
   }
 };
+
+const withPlatformVendor = async (t, run) => {
+  try {
+    const platform = await vendorOrderRepo.findPlatformVendor();
+    if (!platform) {
+      return { success: false, status: 404, message: t('vendor.orders.platformNotFound') };
+    }
+    return await run(platform.id);
+  } catch (err) {
+    logger.error({ err }, 'Unhandled error');
+    return { success: false, status: 500, message: t('vendor.orders.loadError') };
+  }
+};
+
+export const getPlatformOrders = (t, lang, page, limit, fulfillmentStatus) =>
+  withPlatformVendor(t, (vendorId) => getMyOrders(t, lang, vendorId, page, limit, fulfillmentStatus));
+
+export const updatePlatformFulfillment = (t, lang, id, input) =>
+  withPlatformVendor(t, (vendorId) => updateFulfillment(t, lang, vendorId, id, input));

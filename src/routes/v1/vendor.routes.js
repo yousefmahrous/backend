@@ -115,6 +115,38 @@ router.get('/payouts', requireVendor, async (req, res) => {
   res.status(status).json(response);
 });
 
+router.get('/admin/platform-orders', requireAdmin, async (req, res) => {
+  const { page, limit, status: fulfillmentStatus } = req.query;
+  const { status, ...response } = await vendorOrderService.getPlatformOrders(
+    req.t,
+    req.lang,
+    page,
+    limit,
+    fulfillmentStatus
+  );
+  res.status(status).json(response);
+});
+
+router.patch('/admin/platform-orders/:id/fulfillment', requireAdmin, doubleCsrfProtection, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ success: false, message: req.t('order.invalidId') });
+  }
+
+  const result = updateFulfillmentSchema(req.t).safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ success: false, errors: result.error.flatten().fieldErrors });
+  }
+
+  const { status, ...response } = await vendorOrderService.updatePlatformFulfillment(
+    req.t,
+    req.lang,
+    id,
+    result.data
+  );
+  res.status(status).json(response);
+});
+
 router.get('/orders', requireVendor, async (req, res) => {
   const { page, limit, status: fulfillmentStatus } = req.query;
   const { status, ...response } = await vendorOrderService.getMyOrders(

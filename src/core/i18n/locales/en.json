@@ -220,7 +220,8 @@
         "carrierRequired": "Shipping company is required when marking as shipped",
         "carrierMax": "Shipping company name must be at most 60 characters",
         "trackingMax": "Tracking number must be at most 80 characters"
-      }
+      },
+      "platformNotFound": "The store's own vendor was not found"
     },
     "earnings": {
       "loadError": "An error occurred while loading your earnings"

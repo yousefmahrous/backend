@@ -1,61 +1,83 @@
-import * as vendorOrderRepo from './vendor.order.repository.js';
-import {
-  FULFILLMENT_STATUS,
-  FULFILLMENT_STATUSES,
-  FULFILLMENT_TRANSITIONS
-} from './vendor.constants.js';
-import { pickLocalized } from '../../core/i18n/localized.js';
-import { addShipmentStatusEmailJob } from '../../core/email.queue.js';
+import * as vendorRepo from './vendor.repository.js';
+import { VENDOR_STATUS, VENDOR_STATUSES, VENDOR_TRANSITIONS } from './vendor.constants.js';
+import { addVendorStatusEmailJob } from '../../core/email.queue.js';
 import logger from '../../core/logger.js';
 
-const serializeVendorOrder = (vendorOrder, lang) => ({
-  id: vendorOrder.id,
-  order_id: vendorOrder.order_id,
-  order_status: vendorOrder.order.status,
-  return_status: vendorOrder.return_status ?? null,
-  paid_at: vendorOrder.order.paid_at,
-  created_at: vendorOrder.created_at,
-  fulfillment_status: vendorOrder.fulfillment_status,
-  carrier: vendorOrder.carrier,
-  tracking_number: vendorOrder.tracking_number,
-  shipped_at: vendorOrder.shipped_at,
-  delivered_at: vendorOrder.delivered_at,
-  shipping: {
-    name: vendorOrder.order.shipping_name,
-    phone: vendorOrder.order.shipping_phone,
-    address: vendorOrder.order.shipping_address,
-    city: vendorOrder.order.shipping_city,
-    notes: vendorOrder.order.shipping_notes
-  },
-  items: vendorOrder.items.map((item) => ({
-    book_id: item.book_id,
-    title: pickLocalized(item.book.title, lang),
-    quantity: item.quantity,
-    unit_price: item.unit_price
-  })),
-  subtotal: vendorOrder.items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
+export const buildVendorSlug = (storeName, ownerId) => {
+  const base = storeName
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .slice(0, 40)
+    .replace(/^-+|-+$/g, '');
+
+  return base ? `${base}-${ownerId}` : `store-${ownerId}`;
+};
+
+const serializeVendor = (vendor) => ({
+  id: vendor.id,
+  store_name: vendor.store_name,
+  slug: vendor.slug,
+  status: vendor.status,
+  commission_bps: vendor.commission_bps,
+  created_at: vendor.created_at,
+  ...(vendor.owner
+    ? { owner: { id: vendor.owner.id, name: vendor.owner.name, email: vendor.owner.email } }
+    : {})
 });
 
-export const getMyOrders = async (t, lang, vendorId, page = 1, limit = 20, fulfillmentStatus) => {
+export const applyAsVendor = async (t, userId, storeName) => {
+  try {
+    const existing = await vendorRepo.findVendorByOwnerId(userId);
+
+    if (existing && existing.status !== VENDOR_STATUS.REJECTED) {
+      return { success: false, status: 409, message: t('vendor.alreadyExists') };
+    }
+
+    const vendor = existing
+      ? await vendorRepo.resubmitVendorApplication(existing.id, storeName)
+      : await vendorRepo.createVendorApplication(userId, storeName, buildVendorSlug(storeName, userId));
+
+    return {
+      success: true,
+      status: 201,
+      message: t('vendor.applied'),
+      data: serializeVendor(vendor)
+    };
+  } catch (err) {
+    if (err.code === 'P2002') {
+      return { success: false, status: 409, message: t('vendor.alreadyExists') };
+    }
+    logger.error({ err: err }, 'Unhandled error');
+    return { success: false, status: 500, message: t('vendor.applyError') };
+  }
+};
+
+export const getMyVendor = async (t, userId) => {
+  try {
+    const vendor = await vendorRepo.findVendorByOwnerId(userId);
+    return { success: true, status: 200, data: vendor ? serializeVendor(vendor) : null };
+  } catch (err) {
+    logger.error({ err: err }, 'Unhandled error');
+    return { success: false, status: 500, message: t('vendor.loadError') };
+  }
+};
+
+export const getAllVendorsAdmin = async (t, page = 1, limit = 20, status) => {
   try {
     const pageNumber = Math.max(1, parseInt(page) || 1);
     const limitNumber = Math.max(1, parseInt(limit) || 20);
     const skip = (pageNumber - 1) * limitNumber;
-    const safeStatus = FULFILLMENT_STATUSES.includes(fulfillmentStatus) ? fulfillmentStatus : undefined;
+    const safeStatus = VENDOR_STATUSES.includes(status) ? status : undefined;
 
-    const { vendorOrders, totalCount } = await vendorOrderRepo.findVendorOrders(
-      vendorId,
-      skip,
-      limitNumber,
-      safeStatus
-    );
+    const { vendors, totalCount } = await vendorRepo.findAllVendors(skip, limitNumber, safeStatus);
     const totalPages = Math.ceil(totalCount / limitNumber) || 1;
 
     return {
       success: true,
       status: 200,
       data: {
-        items: vendorOrders.map((vo) => serializeVendorOrder(vo, lang)),
+        items: vendors.map(serializeVendor),
         pagination: {
           totalCount,
           totalPages,
@@ -67,96 +89,55 @@ export const getMyOrders = async (t, lang, vendorId, page = 1, limit = 20, fulfi
       }
     };
   } catch (err) {
-    logger.error({ err }, 'Unhandled error');
-    return { success: false, status: 500, message: t('vendor.orders.loadError') };
+    logger.error({ err: err }, 'Unhandled error');
+    return { success: false, status: 500, message: t('vendor.loadError') };
   }
 };
 
-export const getMyOrderById = async (t, lang, vendorId, id) => {
+export const changeVendorStatus = async (t, id, newStatus) => {
   try {
-    const vendorOrder = await vendorOrderRepo.findVendorOrderById(id, vendorId);
+    const vendor = await vendorRepo.findVendorById(id);
 
-    if (!vendorOrder) {
-      return { success: false, status: 404, message: t('vendor.orders.notFound') };
+    if (!vendor) {
+      return { success: false, status: 404, message: t('vendor.notFound') };
     }
 
-    return { success: true, status: 200, data: serializeVendorOrder(vendorOrder, lang) };
-  } catch (err) {
-    logger.error({ err }, 'Unhandled error');
-    return { success: false, status: 500, message: t('vendor.orders.loadError') };
-  }
-};
-
-export const updateFulfillment = async (t, lang, vendorId, id, input) => {
-  try {
-    const vendorOrder = await vendorOrderRepo.findVendorOrderById(id, vendorId);
-
-    if (!vendorOrder) {
-      return { success: false, status: 404, message: t('vendor.orders.notFound') };
+    if (vendor.is_platform) {
+      return { success: false, status: 400, message: t('vendor.platformImmutable') };
     }
 
-    if (vendorOrder.return_status || vendorOrder.order.status !== 'paid') {
-      return { success: false, status: 409, message: t('vendor.orders.orderNotActive') };
+    const allowed = VENDOR_TRANSITIONS[vendor.status] ?? [];
+    if (!allowed.includes(newStatus)) {
+      return { success: false, status: 400, message: t('vendor.invalidTransition') };
     }
 
-    const allowed = FULFILLMENT_TRANSITIONS[vendorOrder.fulfillment_status] ?? [];
-    if (!allowed.includes(input.status)) {
-      return { success: false, status: 400, message: t('vendor.orders.invalidTransition') };
-    }
-
-    const data = { fulfillment_status: input.status };
-
-    if (input.status === FULFILLMENT_STATUS.SHIPPED) {
-      data.carrier = input.carrier;
-      data.tracking_number = input.tracking_number ?? null;
-      data.shipped_at = new Date();
-    }
-
-    if (input.status === FULFILLMENT_STATUS.DELIVERED) {
-      data.delivered_at = new Date();
-    }
-
-    const updated = await vendorOrderRepo.transitionFulfillment(
-      id,
-      vendorId,
-      vendorOrder.fulfillment_status,
-      data
-    );
-
+    const updated = await vendorRepo.updateVendorStatus(id, vendor.status, newStatus);
     if (!updated) {
-      return { success: false, status: 409, message: t('vendor.orders.statusConflict') };
+      return { success: false, status: 409, message: t('vendor.statusConflict') };
     }
 
-    const fresh = await vendorOrderRepo.findVendorOrderById(id, vendorId);
-
-    const customer = fresh.order.user;
-    if (customer?.email) {
+    // Best effort: a failed email must never undo or fail the status change.
+    if (vendor.owner?.email) {
       try {
-        await addShipmentStatusEmailJob(
-          customer.email,
-          customer.name,
-          {
-            order_id: fresh.order_id,
-            store_name: fresh.vendor?.store_name ?? '',
-            status: fresh.fulfillment_status,
-            carrier: fresh.carrier,
-            tracking_number: fresh.tracking_number
-          },
-          customer.preferred_lang
+        await addVendorStatusEmailJob(
+          vendor.owner.email,
+          vendor.owner.name,
+          { store_name: vendor.store_name, from: vendor.status, to: newStatus },
+          vendor.owner.preferred_lang
         );
       } catch (err) {
-        logger.warn({ err }, 'Failed to queue shipment status email');
+        logger.warn({ err }, 'Failed to queue vendor status email');
       }
     }
 
     return {
       success: true,
       status: 200,
-      message: t('vendor.orders.updated'),
-      data: serializeVendorOrder(fresh, lang)
+      message: t('vendor.statusUpdated'),
+      data: serializeVendor({ ...vendor, status: newStatus })
     };
   } catch (err) {
-    logger.error({ err }, 'Unhandled error');
-    return { success: false, status: 500, message: t('vendor.orders.updateError') };
+    logger.error({ err: err }, 'Unhandled error');
+    return { success: false, status: 500, message: t('vendor.updateError') };
   }
 };
