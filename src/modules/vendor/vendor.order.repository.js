@@ -18,7 +18,7 @@ const VENDOR_ORDER_INCLUDE = {
     }
   },
   vendor: { select: { store_name: true } },
-  items: { include: { book: true } }
+  items: { include: { product: true } }
 };
 
 export const findVendorOrders = async (vendorId, skip, take, fulfillmentStatus) => {

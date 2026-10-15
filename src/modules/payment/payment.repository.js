@@ -55,7 +55,8 @@ export const createPendingOrderFromCart = async (userId, cart, shipping) => {
     await tx.orderItem.createMany({
       data: cart.items.map((item) => ({
         order_id: order.id,
-        book_id: item.book_id,
+        product_id: item.product_id,
+        variant_id: item.variant_id,
         vendor_order_id: vendorOrderIdByVendor.get(item.variant.product.vendor_id),
         quantity: item.quantity,
         unit_price: item.variant.price
@@ -64,7 +65,7 @@ export const createPendingOrderFromCart = async (userId, cart, shipping) => {
 
     return tx.order.findUnique({
       where: { id: order.id },
-      include: { items: { include: { book: true } } }
+      include: { items: { include: { product: true } } }
     });
   });
 };
@@ -79,7 +80,7 @@ export const attachStripeSession = async (orderId, sessionId) => {
 export const findOrderBySessionId = async (sessionId) => {
   return prisma.order.findUnique({
     where: { stripe_session_id: sessionId },
-    include: { items: { include: { book: true } } }
+    include: { items: { include: { product: true } } }
   });
 };
 
@@ -109,7 +110,7 @@ export const markOrderPaid = async (orderId, paymentIntentId) => {
       where: { id: orderId },
       data: { status: 'paid', payment_intent_id: paymentIntentId, paid_at: new Date() },
       include: {
-        items: { include: { book: true } },
+        items: { include: { product: true } },
         user: { include: { cart: true } }
       }
     });
@@ -139,7 +140,7 @@ export const markOrderFailed = async (orderId) => {
       where: { id: orderId },
       data: { status: 'failed' },
       include: {
-        items: { include: { book: true } },
+        items: { include: { product: true } },
         user: { select: { id: true, name: true, email: true, preferred_lang: true } }
       }
     });
@@ -148,8 +149,8 @@ export const markOrderFailed = async (orderId) => {
 
     if (cart) {
       for (const item of updated.items) {
-        const cartItem = await tx.cartItem.findUnique({
-          where: { cart_id_book_id: { cart_id: cart.id, book_id: item.book_id } }
+        const cartItem = await tx.cartItem.findFirst({
+          where: { cart_id: cart.id, ...(item.variant_id ? { variant_id: item.variant_id } : { product_id: item.product_id }) }
         });
 
         if (!cartItem) continue;
@@ -166,7 +167,7 @@ export const markOrderFailed = async (orderId) => {
         }
 
         await tx.productVariant.updateMany({
-          where: { product_id: item.book_id },
+          where: item.variant_id ? { id: item.variant_id } : { product_id: item.product_id },
           data: { stock: { increment: qtyToRelease } }
         });
       }

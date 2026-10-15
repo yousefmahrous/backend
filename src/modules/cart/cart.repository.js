@@ -28,7 +28,7 @@ export const reserveAndAddItem = async (cartId, variantId, quantity = 1) => {
 
     const variant = await tx.productVariant.findUnique({ where: { id: variantId } });
 
-    await tx.book.update({
+    await tx.product.update({
       where: { id: variant.product_id },
       data: {
         cart_adds_count: { increment: 1 },
@@ -39,7 +39,7 @@ export const reserveAndAddItem = async (cartId, variantId, quantity = 1) => {
     const item = await tx.cartItem.upsert({
       where: { cart_id_variant_id: { cart_id: cartId, variant_id: variantId } },
       update: { quantity: { increment: quantity } },
-      create: { cart_id: cartId, book_id: variant.product_id, variant_id: variantId, quantity },
+      create: { cart_id: cartId, product_id: variant.product_id, variant_id: variantId, quantity },
       include: { variant: { include: { product: true } } }
     });
 
@@ -127,9 +127,24 @@ export const clearCart = async (cartId) => {
   });
 };
 
-export const getVariantByBookId = async (bookId) => {
+const VARIANT_WITH_OWNER = { product: { include: { vendor: { select: { owner_id: true } } } } };
+
+export const getVariantById = async (variantId) => {
+  return prisma.productVariant.findUnique({ where: { id: variantId }, include: VARIANT_WITH_OWNER });
+};
+
+export const getVariantsByProductId = async (productId) => {
+  return prisma.productVariant.findMany({
+    where: { product_id: productId },
+    orderBy: { id: 'asc' },
+    take: 2,
+    include: VARIANT_WITH_OWNER
+  });
+};
+
+export const getVariantByProductId = async (productId) => {
   return prisma.productVariant.findFirst({
-    where: { product_id: bookId },
+    where: { product_id: productId },
     include: { product: { include: { vendor: { select: { owner_id: true } } } } }
   });
 };

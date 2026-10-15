@@ -76,11 +76,11 @@ describe('payment.service', () => {
     });
 
     it('expires and cancels a stale pending order before creating a new one', async () => {
-      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ book_id: 1 }] });
+      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ product_id: 1 }] });
       paymentRepo.findPendingOrderByUser.mockResolvedValue({ id: 9, stripe_session_id: 'sess_old' });
       paymentRepo.createPendingOrderFromCart.mockResolvedValue({
         id: 10,
-        items: [{ book: { title: { ar: 'كتاب' } }, unit_price: 100, quantity: 1 }],
+        items: [{ product: { title: { ar: 'كتاب' } }, unit_price: 100, quantity: 1 }],
       });
       stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
 
@@ -93,7 +93,7 @@ describe('payment.service', () => {
     });
 
     it('still cancels the stale order locally even when Stripe fails to expire its session', async () => {
-      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ book_id: 1 }] });
+      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ product_id: 1 }] });
       paymentRepo.findPendingOrderByUser.mockResolvedValue({ id: 9, stripe_session_id: 'sess_old' });
       stripe.checkout.sessions.expire.mockRejectedValue(new Error('already expired'));
       paymentRepo.createPendingOrderFromCart.mockResolvedValue({ id: 10, items: [] });
@@ -106,11 +106,11 @@ describe('payment.service', () => {
     });
 
     it('builds Stripe line items from the order with the correct amount and quantity', async () => {
-      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ book_id: 1 }] });
+      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ product_id: 1 }] });
       paymentRepo.findPendingOrderByUser.mockResolvedValue(null);
       paymentRepo.createPendingOrderFromCart.mockResolvedValue({
         id: 10,
-        items: [{ book: { title: { ar: 'كتاب', en: 'Book' } }, unit_price: 2500, quantity: 3 }],
+        items: [{ product: { title: { ar: 'كتاب', en: 'Product' } }, unit_price: 2500, quantity: 3 }],
       });
       stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
 
@@ -123,7 +123,7 @@ describe('payment.service', () => {
             {
               price_data: {
                 currency: 'egp',
-                product_data: { name: 'Book' },
+                product_data: { name: 'Product' },
                 unit_amount: 2500,
               },
               quantity: 3,
@@ -134,20 +134,20 @@ describe('payment.service', () => {
       );
     });
 
-    it("rejects checkout when the cart holds one of the vendor's own books", async () => {
+    it("rejects checkout when the cart holds one of the vendor's own products", async () => {
       cartRepo.getOrCreateCart.mockResolvedValue({
-        items: [{ book_id: 1, variant: { product: { vendor: { owner_id: 5 } } } }],
+        items: [{ product_id: 1, variant: { product: { vendor: { owner_id: 5 } } } }],
       });
 
       const result = await paymentService.createCheckoutSession(t, 'ar', 5, shipping);
 
-      expect(result).toEqual({ success: false, status: 400, message: 'payment.ownBooksInCart' });
+      expect(result).toEqual({ success: false, status: 400, message: 'payment.ownProductsInCart' });
       expect(paymentRepo.createPendingOrderFromCart).not.toHaveBeenCalled();
       expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
     it('passes the shipping address through to the order creation', async () => {
-      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ book_id: 1 }] });
+      cartRepo.getOrCreateCart.mockResolvedValue({ items: [{ product_id: 1 }] });
       paymentRepo.findPendingOrderByUser.mockResolvedValue(null);
       paymentRepo.createPendingOrderFromCart.mockResolvedValue({ id: 10, items: [] });
       stripe.checkout.sessions.create.mockResolvedValue({ id: 'sess_new', url: 'https://stripe/pay' });
@@ -156,7 +156,7 @@ describe('payment.service', () => {
 
       expect(paymentRepo.createPendingOrderFromCart).toHaveBeenCalledWith(
         5,
-        { items: [{ book_id: 1 }] },
+        { items: [{ product_id: 1 }] },
         shipping
       );
     });
@@ -226,15 +226,15 @@ describe('payment.service', () => {
       redisClient.get.mockResolvedValue(null);
       paymentRepo.markOrderFailed.mockResolvedValue({
         id: 11,
-        items: [{ book_id: 1 }, { book_id: 2 }],
+        items: [{ product_id: 1 }, { product_id: 2 }],
         user: { email: 'a@b.com', name: 'Ali', preferred_lang: 'ar' },
       });
 
       const result = await paymentService.handleWebhookEvent('raw-body', 'sig');
 
       expect(paymentRepo.markOrderFailed).toHaveBeenCalledWith(11);
-      expect(redisClient.del).toHaveBeenCalledWith(['books:all', 'books:1']);
-      expect(redisClient.del).toHaveBeenCalledWith(['books:all', 'books:2']);
+      expect(redisClient.del).toHaveBeenCalledWith(['products:all', 'products:1']);
+      expect(redisClient.del).toHaveBeenCalledWith(['products:all', 'products:2']);
       expect(emailQueue.addPaymentFailedEmailJob).toHaveBeenCalled();
       expect(result).toEqual({ success: true, status: 200 });
     });
@@ -296,7 +296,7 @@ describe('payment.service', () => {
       ]);
       paymentRepo.markOrderFailed.mockResolvedValue({
         id: 1,
-        items: [{ book_id: 1 }],
+        items: [{ product_id: 1 }],
         user: { email: 'a@b.com', name: 'Ali', preferred_lang: 'ar' },
       });
 

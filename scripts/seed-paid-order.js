@@ -9,8 +9,8 @@ async function main() {
     throw new Error(`مفيش يوزر بالإيميل ${CUSTOMER_EMAIL}`);
   }
 
-  const anyBook = await prisma.book.findFirst();
-  if (!anyBook) {
+  const anyProduct = await prisma.product.findFirst();
+  if (!anyProduct) {
     throw new Error('مفيش أي كتاب في قاعدة البيانات');
   }
 
@@ -20,7 +20,7 @@ async function main() {
       status: 'paid',
       payment_intent_id: `pi_test_e2e_${Date.now()}`,
       paid_at: new Date(),
-      total_amount: anyBook.price,
+      total_amount: anyProduct.price,
       currency: 'egp',
       shipping_name: 'Test Customer',
       shipping_phone: '01012345678',
@@ -30,16 +30,16 @@ async function main() {
   });
 
   const vendorOrder = await prisma.vendorOrder.create({
-    data: { order_id: order.id, vendor_id: anyBook.vendor_id },
+    data: { order_id: order.id, vendor_id: anyProduct.vendor_id },
   });
 
   await prisma.orderItem.create({
     data: {
       order_id: order.id,
-      book_id: anyBook.id,
+      product_id: anyProduct.id,
       vendor_order_id: vendorOrder.id,
       quantity: 1,
-      unit_price: anyBook.price,
+      unit_price: anyProduct.price,
     },
   });
 

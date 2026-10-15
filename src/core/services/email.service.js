@@ -12,20 +12,20 @@ const DIR = {
   en: { dir: 'ltr', align: 'left' }
 };
 
-const STORE_NAME = { ar: 'متجر الكتب', en: 'Book Store' };
+const STORE_NAME = { ar: 'المتجر', en: 'Online Store' };
 
 const WELCOME_CONTENT = {
   ar: {
-    subject: '🎉 أهلاً بك في متجر الكتب',
+    subject: '🎉 أهلاً بك في المتجر',
     heading: (name) => `أهلاً بك يا ${name} 👋`,
-    body: (email) => `تم إنشاء حسابك بنجاح في متجر الكتب ببريدك الإلكتروني: <strong>${email}</strong>.`,
-    sub: 'يمكنك الآن تسجيل الدخول وتصفح الكتب والاستفادة من كل عروضنا بكل سهولة!'
+    body: (email) => `تم إنشاء حسابك بنجاح في المتجر ببريدك الإلكتروني: <strong>${email}</strong>.`,
+    sub: 'يمكنك الآن تسجيل الدخول وتصفح المنتجات والاستفادة من كل عروضنا بكل سهولة!'
   },
   en: {
-    subject: '🎉 Welcome to the Book Store',
+    subject: '🎉 Welcome to the Store',
     heading: (name) => `Welcome, ${name} 👋`,
     body: (email) => `Your account has been created successfully with the email: <strong>${email}</strong>.`,
-    sub: 'You can now log in, browse our books, and enjoy all our offers with ease!'
+    sub: 'You can now log in, browse our products, and enjoy all our offers with ease!'
   }
 };
 
@@ -57,20 +57,20 @@ export const sendWelcomeEmail = async (userEmail, userName, lang) => {
 
 const VERIFICATION_CONTENT = {
   ar: {
-    subject: '📩 تأكيد بريدك الإلكتروني - متجر الكتب',
+    subject: '📩 تأكيد بريدك الإلكتروني - المتجر',
     heading: (name) => `أهلاً بك يا ${name} 👋`,
-    body: 'شكرًا لتسجيلك في متجر الكتب. خطوة واحدة بس فاضلة عشان تفعّل حسابك وتبدأ تتصفح الكتب.',
+    body: 'شكرًا لتسجيلك في المتجر. خطوة واحدة بس فاضلة عشان تفعّل حسابك وتبدأ تتصفح المنتجات.',
     cta: 'اضغط على الزرار ده لتأكيد بريدك الإلكتروني (الرابط صالح لمدة 24 ساعة):',
     button: 'تأكيد البريد الإلكتروني',
-    footer: 'لو مسجلتش في متجر الكتب، ممكن تتجاهل الإيميل ده بأمان.'
+    footer: 'لو مسجلتش في المتجر، ممكن تتجاهل الإيميل ده بأمان.'
   },
   en: {
-    subject: '📩 Confirm your email - Book Store',
+    subject: '📩 Confirm your email - Online Store',
     heading: (name) => `Welcome, ${name} 👋`,
-    body: 'Thanks for signing up with the Book Store. Just one more step to activate your account and start browsing.',
+    body: 'Thanks for signing up with the Store. Just one more step to activate your account and start browsing.',
     cta: 'Click the button below to confirm your email (valid for 24 hours):',
     button: 'Confirm Email',
-    footer: "If you didn't sign up for the Book Store, you can safely ignore this email."
+    footer: "If you didn't sign up for the Store, you can safely ignore this email."
   }
 };
 
@@ -180,8 +180,8 @@ const formatPrice = (amountInPiastres, lang) => {
 };
 
 const TABLE_LABELS = {
-  ar: { book: 'الكتاب', qty: 'الكمية', price: 'السعر', total: 'الإجمالي', orderNo: 'رقم الأوردر' },
-  en: { book: 'Book', qty: 'Qty', price: 'Price', total: 'Total', orderNo: 'Order #' }
+  ar: { product: 'المنتج', qty: 'الكمية', price: 'السعر', total: 'الإجمالي', orderNo: 'رقم الأوردر' },
+  en: { product: 'Product', qty: 'Qty', price: 'Price', total: 'Total', orderNo: 'Order #' }
 };
 
 const renderOrderItemsRows = (items = [], lang) =>
@@ -189,7 +189,7 @@ const renderOrderItemsRows = (items = [], lang) =>
     .map(
       (item) => `
         <tr>
-          <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${pickLocalized(item.title ?? item.book?.title, lang)}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${pickLocalized(item.title ?? item.product?.title, lang)}</td>
           <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
           <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: ${lang === 'en' ? 'right' : 'left'};" dir="ltr">${formatPrice(item.unit_price * item.quantity, lang)}</td>
         </tr>`
@@ -208,7 +208,7 @@ const orderEmailWrapper = ({ lang, title, titleColor, intro, order, footer }) =>
     <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
       <thead>
         <tr>
-          <th style="text-align: ${align}; padding: 8px 0; border-bottom: 2px solid #ddd;">${t.book}</th>
+          <th style="text-align: ${align}; padding: 8px 0; border-bottom: 2px solid #ddd;">${t.product}</th>
           <th style="text-align: center; padding: 8px 0; border-bottom: 2px solid #ddd;">${t.qty}</th>
           <th style="text-align: ${lang === 'en' ? 'right' : 'left'}; padding: 8px 0; border-bottom: 2px solid #ddd;">${t.price}</th>
         </tr>
@@ -300,13 +300,13 @@ const REFUND_STATUS_CONTENT = {
       subject: 'تمت الموافقة على طلب الاسترجاع',
       title: (name) => `تمت الموافقة على طلبك يا ${name} ✅`,
       titleColor: '#2196F3',
-      intro: 'وافقنا على طلب استرجاع الأوردر بتاعك. من فضلك ابعت الكتاب زي ما هو متفق عليه، وهنبدأ في رد الفلوس بمجرد استلامه.'
+      intro: 'وافقنا على طلب استرجاع الأوردر بتاعك. من فضلك ابعت المنتج زي ما هو متفق عليه، وهنبدأ في رد الفلوس بمجرد استلامه.'
     },
     en: {
       subject: 'Your refund request has been approved',
       title: (name) => `Your request has been approved, ${name} ✅`,
       titleColor: '#2196F3',
-      intro: 'We approved your order refund request. Please send back the book as agreed, and we will start the refund once we receive it.'
+      intro: 'We approved your order refund request. Please send back the product as agreed, and we will start the refund once we receive it.'
     }
   },
   rejected: {
@@ -342,13 +342,13 @@ const REFUND_STATUS_CONTENT = {
       subject: 'تم تنفيذ الاسترجاع بنجاح',
       title: (name) => `استرجاع الفلوس تم بنجاح يا ${name} 💰`,
       titleColor: '#4CAF50',
-      intro: 'استلمنا الكتاب وتم تنفيذ عملية استرجاع الفلوس. المبلغ هيرجع لحسابك خلال أيام قليلة حسب بنكك.'
+      intro: 'استلمنا المنتج وتم تنفيذ عملية استرجاع الفلوس. المبلغ هيرجع لحسابك خلال أيام قليلة حسب بنكك.'
     },
     en: {
       subject: 'Your refund has been completed',
       title: (name) => `Refund completed successfully, ${name} 💰`,
       titleColor: '#4CAF50',
-      intro: 'We received the book and processed your refund. The amount will be returned to your account within a few days depending on your bank.'
+      intro: 'We received the product and processed your refund. The amount will be returned to your account within a few days depending on your bank.'
     }
   }
 };
@@ -392,12 +392,12 @@ const VENDOR_STATUS_CONTENT = {
     ar: {
       subject: '✅ تمت الموافقة على متجرك',
       title: (name) => `مبروك يا ${name} 🎉`,
-      intro: (store) => `تمت الموافقة على متجرك <strong>${store}</strong>. تقدر الآن تضيف كتبك وتستقبل الأوردرات.`
+      intro: (store) => `تمت الموافقة على متجرك <strong>${store}</strong>. تقدر الآن تضيف منتجاتك وتستقبل الأوردرات.`
     },
     en: {
       subject: '✅ Your store has been approved',
       title: (name) => `Congratulations, ${name} 🎉`,
-      intro: (store) => `Your store <strong>${store}</strong> has been approved. You can now add your books and receive orders.`
+      intro: (store) => `Your store <strong>${store}</strong> has been approved. You can now add your products and receive orders.`
     }
   },
   'pending->rejected': {
@@ -418,12 +418,12 @@ const VENDOR_STATUS_CONTENT = {
     ar: {
       subject: '⚠️ تم إيقاف متجرك مؤقتًا',
       title: (name) => `أهلاً ${name}`,
-      intro: (store) => `تم إيقاف متجرك <strong>${store}</strong> مؤقتًا. لن تظهر كتبك ولن تستقبل أوردرات جديدة حتى إعادة التفعيل. تواصل معنا لو عندك أي استفسار.`
+      intro: (store) => `تم إيقاف متجرك <strong>${store}</strong> مؤقتًا. لن تظهر منتجاتك ولن تستقبل أوردرات جديدة حتى إعادة التفعيل. تواصل معنا لو عندك أي استفسار.`
     },
     en: {
       subject: '⚠️ Your store has been suspended',
       title: (name) => `Hello ${name}`,
-      intro: (store) => `Your store <strong>${store}</strong> has been temporarily suspended. Your books are hidden and you won't receive new orders until it is reactivated. Contact us if you have any questions.`
+      intro: (store) => `Your store <strong>${store}</strong> has been temporarily suspended. Your products are hidden and you won't receive new orders until it is reactivated. Contact us if you have any questions.`
     }
   },
   'suspended->active': {
@@ -431,12 +431,12 @@ const VENDOR_STATUS_CONTENT = {
     ar: {
       subject: '✅ تمت إعادة تفعيل متجرك',
       title: (name) => `أهلاً ${name} 👋`,
-      intro: (store) => `تمت إعادة تفعيل متجرك <strong>${store}</strong>. كتبك ظاهرة من جديد وتقدر تستقبل الأوردرات.`
+      intro: (store) => `تمت إعادة تفعيل متجرك <strong>${store}</strong>. منتجاتك ظاهرة من جديد وتقدر تستقبل الأوردرات.`
     },
     en: {
       subject: '✅ Your store has been reactivated',
       title: (name) => `Welcome back, ${name} 👋`,
-      intro: (store) => `Your store <strong>${store}</strong> has been reactivated. Your books are visible again and you can receive orders.`
+      intro: (store) => `Your store <strong>${store}</strong> has been reactivated. Your products are visible again and you can receive orders.`
     }
   }
 };

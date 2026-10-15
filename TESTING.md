@@ -41,7 +41,7 @@ locale changes.
 
 ## What's not covered yet
 
-`auth`, `order`, `payment`, `book`, `cart`, `favorite`, `review`, and
+`auth`, `order`, `payment`, `product`, `cart`, `favorite`, `review`, and
 `contact` don't have tests yet. The pattern above (mock the repository +
 external services, assert on the returned `{ success, status, message }`)
 applies directly to all of them — `payment.service.js` (the Stripe webhook

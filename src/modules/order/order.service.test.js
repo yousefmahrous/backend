@@ -20,7 +20,7 @@ const makeOrder = (overrides = {}) => ({
   currency: 'egp',
   created_at: 'a',
   paid_at: 'b',
-  items: [{ book_id: 1, book: { title: { ar: 'كتاب', en: 'Book' } }, quantity: 2, unit_price: 50 }],
+  items: [{ product_id: 1, product: { title: { ar: 'كتاب', en: 'Product' } }, quantity: 2, unit_price: 50 }],
   ...overrides,
 });
 
@@ -41,13 +41,13 @@ describe('order.service', () => {
           vendorOrders: [
             {
               id: 3,
-              vendor: { id: 7, store_name: 'Cairo Books', slug: 'secret' },
+              vendor: { id: 7, store_name: 'Cairo Products', slug: 'secret' },
               fulfillment_status: 'shipped',
               carrier: 'Bosta',
               tracking_number: 'TRK1',
               shipped_at: 's',
               delivered_at: null,
-              items: [{ book_id: 1, book: { title: { ar: 'كتاب', en: 'Book' } }, quantity: 2, unit_price: 50 }],
+              items: [{ product_id: 1, product: { title: { ar: 'كتاب', en: 'Product' } }, quantity: 2, unit_price: 50 }],
             },
           ],
         })
@@ -65,14 +65,14 @@ describe('order.service', () => {
       expect(result.data.shipments).toEqual([
         {
           id: 3,
-          vendor: { id: 7, store_name: 'Cairo Books' },
+          vendor: { id: 7, store_name: 'Cairo Products' },
           fulfillment_status: 'shipped',
           return_status: null,
           carrier: 'Bosta',
           tracking_number: 'TRK1',
           shipped_at: 's',
           delivered_at: null,
-          items: [{ book_id: 1, title: 'Book', quantity: 2, unit_price: 50 }],
+          items: [{ product_id: 1, title: 'Product', quantity: 2, unit_price: 50 }],
         },
       ]);
     });
@@ -96,12 +96,12 @@ describe('order.service', () => {
       expect(result).toEqual({ success: false, status: 404, message: 'order.notFound' });
     });
 
-    it('serializes the order items with the localized book title for the given language', async () => {
+    it('serializes the order items with the localized product title for the given language', async () => {
       orderRepo.findOrderByIdForUser.mockResolvedValue(makeOrder());
 
       const result = await orderService.getOrderForUser(t, 'en', 1, 5);
 
-      expect(result.data.items).toEqual([{ book_id: 1, title: 'Book', quantity: 2, unit_price: 50 }]);
+      expect(result.data.items).toEqual([{ product_id: 1, title: 'Product', quantity: 2, unit_price: 50 }]);
     });
 
     it('returns a 500 when the repository throws unexpectedly', async () => {

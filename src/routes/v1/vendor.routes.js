@@ -9,11 +9,12 @@ import authMiddleware from '../../core/middlewares/auth.middleware.js';
 import requireAdmin from '../../core/middlewares/admin.middleware.js';
 import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 import requireVendor from '../../core/middlewares/requireVendor.middleware.js';
-import * as vendorBookService from '../../modules/vendor/vendor.book.service.js';
+import * as productService from '../../modules/product/product.service.js';
+import * as vendorProductService from '../../modules/vendor/vendor.product.service.js';
 import * as vendorOrderService from '../../modules/vendor/vendor.order.service.js';
 import * as payoutService from '../../modules/payout/payout.service.js';
 import * as refundService from '../../modules/refund/refund.service.js';
-import { validateAdd, validateEdit } from '../../core/middlewares/validation.js';
+import { validateAdd, validateEdit, validateVariant } from '../../core/middlewares/validation.js';
 
 const router = express.Router();
 
@@ -72,29 +73,44 @@ router.patch('/:id/status', requireAdmin, doubleCsrfProtection, async (req, res)
   res.status(status).json(response);
 });
 
-router.get('/books', requireVendor, async (req, res) => {
+router.get('/products', requireVendor, async (req, res) => {
   const { page, limit } = req.query;
-  const { status, ...response } = await vendorBookService.getMyBooks(req.t, req.vendor.id, page, limit);
+  const { status, ...response } = await vendorProductService.getMyProducts(req.t, req.vendor.id, page, limit);
   res.status(status).json(response);
 });
 
-router.post('/books', requireVendor, doubleCsrfProtection, validateAdd, async (req, res) => {
-  const { status, ...response } = await vendorBookService.addMyBook(req.t, req.vendor.id, req.body);
+router.post('/products', requireVendor, doubleCsrfProtection, validateAdd, async (req, res) => {
+  const { status, ...response } = await vendorProductService.addMyProduct(req.t, req.vendor.id, req.body);
   res.status(status).json(response);
 });
 
-router.get('/books/:id', requireVendor, async (req, res) => {
-  const { status, ...response } = await vendorBookService.getMyBookById(req.t, req.vendor.id, req.params.id);
+router.get('/products/:id', requireVendor, async (req, res) => {
+  const { status, ...response } = await vendorProductService.getMyProductById(req.t, req.vendor.id, req.params.id);
   res.status(status).json(response);
 });
 
-router.put('/books/:id', requireVendor, doubleCsrfProtection, validateEdit, async (req, res) => {
-  const { status, ...response } = await vendorBookService.editMyBook(req.t, req.vendor.id, req.params.id, req.body);
+router.put('/products/:id', requireVendor, doubleCsrfProtection, validateEdit, async (req, res) => {
+  const { status, ...response } = await vendorProductService.editMyProduct(req.t, req.vendor.id, req.params.id, req.body);
   res.status(status).json(response);
 });
 
-router.delete('/books/:id', requireVendor, doubleCsrfProtection, async (req, res) => {
-  const { status, ...response } = await vendorBookService.deleteMyBook(req.t, req.vendor.id, req.params.id);
+router.delete('/products/:id', requireVendor, doubleCsrfProtection, async (req, res) => {
+  const { status, ...response } = await vendorProductService.deleteMyProduct(req.t, req.vendor.id, req.params.id);
+  res.status(status).json(response);
+});
+
+router.post('/products/:id/variants', requireVendor, doubleCsrfProtection, validateVariant, async (req, res) => {
+  const { status, ...response } = await productService.addProductVariant(req.t, req.params.id, req.body, req.vendor.id);
+  res.status(status).json(response);
+});
+
+router.put('/products/:id/variants/:variantId', requireVendor, doubleCsrfProtection, validateVariant, async (req, res) => {
+  const { status, ...response } = await productService.editProductVariant(req.t, req.params.id, req.params.variantId, req.body, req.vendor.id);
+  res.status(status).json(response);
+});
+
+router.delete('/products/:id/variants/:variantId', requireVendor, doubleCsrfProtection, async (req, res) => {
+  const { status, ...response } = await productService.removeProductVariant(req.t, req.params.id, req.params.variantId, req.vendor.id);
   res.status(status).json(response);
 });
 

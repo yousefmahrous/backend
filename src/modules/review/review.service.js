@@ -13,18 +13,18 @@ const serializeReview = (review) => ({
   }
 });
 
-export const getReviewsForBook = async (t, bookId, page = 1, limit = 10) => {
+export const getReviewsForProduct = async (t, productId, page = 1, limit = 10) => {
   try {
     const pageNumber = Math.max(1, parseInt(page) || 1);
     const limitNumber = Math.max(1, Math.min(50, parseInt(limit) || 10));
     const skip = (pageNumber - 1) * limitNumber;
 
-    const book = await reviewRepo.getBookById(bookId);
-    if (!book) {
-      return { success: false, status: 404, message: t('review.bookNotFound') };
+    const product = await reviewRepo.getProductById(productId);
+    if (!product) {
+      return { success: false, status: 404, message: t('review.productNotFound') };
     }
 
-    const { reviews, totalCount } = await reviewRepo.getReviewsByBook(bookId, skip, limitNumber);
+    const { reviews, totalCount } = await reviewRepo.getReviewsByProduct(productId, skip, limitNumber);
     const totalPages = Math.ceil(totalCount / limitNumber);
 
     return {
@@ -32,8 +32,8 @@ export const getReviewsForBook = async (t, bookId, page = 1, limit = 10) => {
       status: 200,
       data: {
         reviews: reviews.map(serializeReview),
-        rating_average: book.rating_average,
-        reviews_count: book.reviews_count,
+        rating_average: product.rating_average,
+        reviews_count: product.reviews_count,
         pagination: {
           totalCount,
           totalPages,
@@ -50,19 +50,19 @@ export const getReviewsForBook = async (t, bookId, page = 1, limit = 10) => {
   }
 };
 
-export const addOrUpdateReview = async (t, userId, bookId, reviewData) => {
+export const addOrUpdateReview = async (t, userId, productId, reviewData) => {
   try {
-    const book = await reviewRepo.getBookById(bookId);
-    if (!book) {
-      return { success: false, status: 404, message: t('review.bookNotFound') };
+    const product = await reviewRepo.getProductById(productId);
+    if (!product) {
+      return { success: false, status: 404, message: t('review.productNotFound') };
     }
 
-    const existing = await reviewRepo.findReview(userId, bookId);
+    const existing = await reviewRepo.findReview(userId, productId);
     const isUpdate = Boolean(existing);
 
-    const { review, bookRating } = await reviewRepo.upsertReview(
+    const { review, productRating } = await reviewRepo.upsertReview(
       userId,
-      bookId,
+      productId,
       reviewData.rating,
       reviewData.comment
     );
@@ -73,8 +73,8 @@ export const addOrUpdateReview = async (t, userId, bookId, reviewData) => {
       message: isUpdate ? t('review.updated') : t('review.added'),
       data: {
         review: serializeReview(review),
-        rating_average: bookRating.ratingAverage,
-        reviews_count: bookRating.reviewsCount
+        rating_average: productRating.ratingAverage,
+        reviews_count: productRating.reviewsCount
       }
     };
   } catch (err) {
@@ -94,15 +94,15 @@ export const deleteReview = async (t, reviewId, userId, isAdmin) => {
       return { success: false, status: 403, message: t('review.notAllowedToDelete') };
     }
 
-    const { bookRating } = await reviewRepo.deleteReview(reviewId, review.book_id);
+    const { productRating } = await reviewRepo.deleteReview(reviewId, review.product_id);
 
     return {
       success: true,
       status: 200,
       message: t('review.deleted'),
       data: {
-        rating_average: bookRating.ratingAverage,
-        reviews_count: bookRating.reviewsCount
+        rating_average: productRating.ratingAverage,
+        reviews_count: productRating.reviewsCount
       }
     };
   } catch (err) {

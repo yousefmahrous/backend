@@ -6,7 +6,7 @@ vi.mock('./favorite.repository.js', () => ({
   findFavorite: vi.fn(),
   addFavorite: vi.fn(),
   removeFavorite: vi.fn(),
-  getBookById: vi.fn(),
+  getProductById: vi.fn(),
 }));
 
 const favoriteRepo = await import('./favorite.repository.js');
@@ -14,9 +14,9 @@ const favoriteService = await import('./favorite.service.js');
 
 const t = fakeT;
 
-const makeBook = (overrides = {}) => ({
+const makeProduct = (overrides = {}) => ({
   id: 1,
-  title: 'Book',
+  title: 'Product',
   isbn: '123',
   category: 'fiction',
   cover_url: 'http://x/cover.jpg',
@@ -31,7 +31,7 @@ describe('favorite.service', () => {
 
   describe('getFavorites', () => {
     it('serializes the favorites list with the item count', async () => {
-      favoriteRepo.getFavoritesByUser.mockResolvedValue([{ id: 10, book: makeBook() }]);
+      favoriteRepo.getFavoritesByUser.mockResolvedValue([{ id: 10, product: makeProduct() }]);
 
       const result = await favoriteService.getFavorites(t, 5);
 
@@ -42,7 +42,7 @@ describe('favorite.service', () => {
           items: [
             {
               id: 10,
-              book: { id: '1', name: 'Book', number: '123', category: 'fiction', avatar_url: 'http://x/cover.jpg', stock: 5 },
+              product: { id: '1', name: 'Product', number: '123', category: 'fiction', avatar_url: 'http://x/cover.jpg', stock: 5 },
             },
           ],
           itemsCount: 1,
@@ -60,17 +60,17 @@ describe('favorite.service', () => {
   });
 
   describe('addFavorite', () => {
-    it('returns 404 when the book does not exist', async () => {
-      favoriteRepo.getBookById.mockResolvedValue(null);
+    it('returns 404 when the product does not exist', async () => {
+      favoriteRepo.getProductById.mockResolvedValue(null);
 
       const result = await favoriteService.addFavorite(t, 5, 999);
 
-      expect(result).toEqual({ success: false, status: 404, message: 'favorite.bookNotFound' });
+      expect(result).toEqual({ success: false, status: 404, message: 'favorite.productNotFound' });
       expect(favoriteRepo.addFavorite).not.toHaveBeenCalled();
     });
 
-    it('refuses to add a book that is already favorited', async () => {
-      favoriteRepo.getBookById.mockResolvedValue(makeBook());
+    it('refuses to add a product that is already favorited', async () => {
+      favoriteRepo.getProductById.mockResolvedValue(makeProduct());
       favoriteRepo.findFavorite.mockResolvedValue({ id: 10 });
 
       const result = await favoriteService.addFavorite(t, 5, 1);
@@ -80,9 +80,9 @@ describe('favorite.service', () => {
     });
 
     it('adds the favorite and returns the refreshed list', async () => {
-      favoriteRepo.getBookById.mockResolvedValue(makeBook());
+      favoriteRepo.getProductById.mockResolvedValue(makeProduct());
       favoriteRepo.findFavorite.mockResolvedValue(null);
-      favoriteRepo.getFavoritesByUser.mockResolvedValue([{ id: 10, book: makeBook() }]);
+      favoriteRepo.getFavoritesByUser.mockResolvedValue([{ id: 10, product: makeProduct() }]);
 
       const result = await favoriteService.addFavorite(t, 5, 1);
 
@@ -92,7 +92,7 @@ describe('favorite.service', () => {
   });
 
   describe('removeFavorite', () => {
-    it('returns 404 when the book is not in the favorites list', async () => {
+    it('returns 404 when the product is not in the favorites list', async () => {
       favoriteRepo.findFavorite.mockResolvedValue(null);
 
       const result = await favoriteService.removeFavorite(t, 5, 1);

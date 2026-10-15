@@ -2,9 +2,9 @@ import prisma from '../../core/db.js';
 import redisClient from '../../core/config/redis.client.js';
 import logger from '../../core/logger.js';
 
-const invalidateBooksCache = async (bookIds) => {
+const invalidateProductsCache = async (productIds) => {
   try {
-    const keys = [...new Set(bookIds)].map((id) => `books:${id}`);
+    const keys = [...new Set(productIds)].map((id) => `products:${id}`);
     if (keys.length) await redisClient.del(keys);
   } catch (err) {
     logger.warn({ err }, 'تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية بعد الاسترجاع');
@@ -17,11 +17,11 @@ const VENDOR_ORDER_INCLUDE = {
   vendor: {
     select: { id: true, store_name: true, owner: { select: { name: true, email: true, preferred_lang: true } } }
   },
-  items: { include: { book: true } }
+  items: { include: { product: true } }
 };
 
 const REQUEST_INCLUDE = {
-  order: { include: { items: { include: { book: true } } } },
+  order: { include: { items: { include: { product: true } } } },
   vendor_order: { include: VENDOR_ORDER_INCLUDE },
   user: { select: USER_SELECT }
 };
@@ -85,7 +85,7 @@ export const findRefundRequestsForVendor = async (vendorId, skip, take) => {
       orderBy: { created_at: 'desc' },
       skip,
       take,
-      include: { vendor_order: { include: { items: { include: { book: true } } } } }
+      include: { vendor_order: { include: { items: { include: { product: true } } } } }
     }),
     prisma.refundRequest.count({ where })
   ]);
@@ -158,7 +158,7 @@ const refundShipments = async (tx, order, shipmentIds) => {
     include: { items: true }
   });
 
-  const restockedBookIds = [];
+  const restockedProductIds = [];
   const totalShipments = await tx.vendorOrder.count({ where: { order_id: order.id } });
   const lines = totalShipments === 0 ? order.items : shipments.flatMap((s) => s.items);
 
@@ -171,10 +171,10 @@ const refundShipments = async (tx, order, shipmentIds) => {
 
   for (const item of lines) {
     await tx.productVariant.updateMany({
-      where: { product_id: item.book_id },
+      where: item.variant_id ? { id: item.variant_id } : { product_id: item.product_id },
       data: { stock: { increment: item.quantity } }
     });
-    restockedBookIds.push(item.book_id);
+    restockedProductIds.push(item.product_id);
   }
 
   const remaining = await tx.vendorOrder.count({
@@ -184,7 +184,7 @@ const refundShipments = async (tx, order, shipmentIds) => {
     await tx.order.update({ where: { id: order.id }, data: { status: 'refunded' } });
   }
 
-  return restockedBookIds;
+  return restockedProductIds;
 };
 
 export const completeRefund = async (id) => {
@@ -208,7 +208,7 @@ export const completeRefund = async (id) => {
     return { ...updatedRequest, order: request.order, vendor_order: request.vendor_order, user: request.user };
   });
 
-  if (restocked.length) await invalidateBooksCache(restocked);
+  if (restocked.length) await invalidateProductsCache(restocked);
 
   return result;
 };
@@ -236,7 +236,7 @@ export const markOrderRefundedFromWebhook = async (paymentIntentId) => {
     return order;
   });
 
-  if (restocked.length) await invalidateBooksCache(restocked);
+  if (restocked.length) await invalidateProductsCache(restocked);
 
   return order;
 };

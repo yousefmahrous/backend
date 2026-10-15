@@ -5,7 +5,7 @@ import prisma from '../src/core/db.js';
 const CUSTOMER = { name: 'Youssef Mahrous', email: 'youssefmahrous445@gmail.com', password: '123456' };
 const ADMIN = { name: 'Admin', email: 'admin@admin.com', password: 'admin123' };
 
-const BOOKS = [
+const PRODUCTS = [
   {
     title: { ar: 'مئة عام من العزلة', en: 'One Hundred Years of Solitude' },
     description: { ar: 'رواية كلاسيكية لغابرييل غارثيا ماركيز.', en: 'A classic novel by Gabriel García Márquez.' },
@@ -18,7 +18,7 @@ const BOOKS = [
   },
   {
     title: { ar: 'موجز تاريخ الزمن', en: 'A Brief History of Time' },
-    description: { ar: 'كتاب علمي لستيفن هوكينج.', en: 'A popular science book by Stephen Hawking.' },
+    description: { ar: 'كتاب علمي لستيفن هوكينج.', en: 'A popular science product by Stephen Hawking.' },
     isbn: '978-0553380163',
     publisher_email: 'publisher2@example.com',
     publisher: 'Bantam',
@@ -58,24 +58,24 @@ async function main() {
   const admin = await upsertUser({ ...ADMIN, role: 'admin' });
   console.log(`Seeded users: customer#${customer.id}, admin#${admin.id}`);
 
-  // Books must belong to a vendor now. The migration creates the store's own
+  // Products must belong to a vendor now. The migration creates the store's own
   // vendor, so the seed just looks it up.
   const platformVendor = await prisma.vendor.findFirstOrThrow({ where: { is_platform: true } });
   const categories = await prisma.category.findMany();
   const categoryIdBySlug = Object.fromEntries(categories.map((c) => [c.slug, c.id]));
 
-  for (const book of BOOKS) {
-    const existing = await prisma.book.findFirst({ where: { isbn: book.isbn } });
+  for (const product of PRODUCTS) {
+    const existing = await prisma.product.findFirst({ where: { isbn: product.isbn } });
     if (existing) {
-      await prisma.book.update({ where: { id: existing.id }, data: { stock: book.stock } });
+      await prisma.product.update({ where: { id: existing.id }, data: { stock: product.stock } });
     } else {
-      await prisma.book.create({
-        data: { ...book, vendor_id: platformVendor.id, category_id: categoryIdBySlug[book.category] }
+      await prisma.product.create({
+        data: { ...product, vendor_id: platformVendor.id, category_id: categoryIdBySlug[product.category] }
       });
     }
   }
-  const bookCount = await prisma.book.count();
-  console.log(`Seeded catalog: ${bookCount} book(s) in database`);
+  const productCount = await prisma.product.count();
+  console.log(`Seeded catalog: ${productCount} product(s) in database`);
 }
 
 main()

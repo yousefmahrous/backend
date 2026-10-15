@@ -3,8 +3,8 @@ import { pickLocalized } from '../../core/i18n/localized.js';
 import logger from '../../core/logger.js';
 
 const serializeItem = (item, lang) => ({
-  book_id: item.book_id,
-  title: pickLocalized(item.book.title, lang),
+  product_id: item.product_id,
+  title: pickLocalized(item.product.title, lang),
   quantity: item.quantity,
   unit_price: item.unit_price
 });

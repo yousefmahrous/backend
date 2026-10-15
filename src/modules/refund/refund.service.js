@@ -7,9 +7,9 @@ import logger from '../../core/logger.js';
 
 const RETURN_WINDOW_DAYS = 14;
 
-const emitBooksUpdated = () => {
+const emitProductsUpdated = () => {
   try {
-    getIO().emit('books_updated');
+    getIO().emit('products_updated');
   } catch (err) {
   }
 };
@@ -40,8 +40,8 @@ const serializeRequest = (request, lang) => ({
           ? { id: request.vendor_order.vendor.id, store_name: request.vendor_order.vendor.store_name }
           : null,
         items: (request.vendor_order.items ?? []).map((item) => ({
-          book_id: item.book_id,
-          title: pickLocalized(item.book?.title, lang),
+          product_id: item.product_id,
+          title: pickLocalized(item.product?.title, lang),
           quantity: item.quantity,
           unit_price: item.unit_price
         }))
@@ -56,8 +56,8 @@ const serializeRequest = (request, lang) => ({
         paid_at: request.order.paid_at,
         items: request.order.items
           ? request.order.items.map((item) => ({
-              book_id: item.book_id,
-              title: pickLocalized(item.book?.title, lang),
+              product_id: item.product_id,
+              title: pickLocalized(item.product?.title, lang),
               quantity: item.quantity,
               unit_price: item.unit_price
             }))
@@ -330,7 +330,7 @@ export const completeRefund = async (t, lang, id) => {
     }
 
     const result = await refundRepo.completeRefund(id);
-    emitBooksUpdated();
+    emitProductsUpdated();
     await queueRefundStatusEmail(result);
 
     return {
@@ -369,8 +369,8 @@ export const getVendorReturns = async (t, lang, vendorId, page = 1, limit = 20) 
           created_at: request.created_at,
           reviewed_at: request.reviewed_at,
           items: (request.vendor_order?.items ?? []).map((item) => ({
-            book_id: item.book_id,
-            title: pickLocalized(item.book?.title, lang),
+            product_id: item.product_id,
+            title: pickLocalized(item.product?.title, lang),
             quantity: item.quantity,
             unit_price: item.unit_price
           }))

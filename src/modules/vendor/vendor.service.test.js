@@ -38,10 +38,10 @@ const makeVendorOrder = (overrides = {}) => ({
     shipping_notes: null,
     user: { name: 'Ali', email: 'ali@x.com', preferred_lang: 'en' },
   },
-  vendor: { store_name: 'Cairo Books' },
+  vendor: { store_name: 'Cairo Products' },
   items: [
-    { book_id: 1, book: { title: { ar: 'كتاب', en: 'Book' } }, quantity: 2, unit_price: 50 },
-    { book_id: 2, book: { title: { ar: 'قلم', en: 'Pen' } }, quantity: 1, unit_price: 30 },
+    { product_id: 1, product: { title: { ar: 'كتاب', en: 'Product' } }, quantity: 2, unit_price: 50 },
+    { product_id: 2, product: { title: { ar: 'قلم', en: 'Pen' } }, quantity: 1, unit_price: 30 },
   ],
   ...overrides,
 });
@@ -66,7 +66,7 @@ describe('vendor.order.service', () => {
         city: 'Giza',
         notes: null,
       });
-      expect(item.items.map((i) => i.title)).toEqual(['Book', 'Pen']);
+      expect(item.items.map((i) => i.title)).toEqual(['Product', 'Pen']);
       expect(item.subtotal).toBe(2 * 50 + 30);
     });
 
@@ -197,7 +197,7 @@ describe('vendor.order.service', () => {
       expect(addShipmentStatusEmailJob).toHaveBeenCalledWith(
         'ali@x.com',
         'Ali',
-        { order_id: 10, store_name: 'Cairo Books', status: 'shipped', carrier: 'Bosta', tracking_number: 'TRK1' },
+        { order_id: 10, store_name: 'Cairo Products', status: 'shipped', carrier: 'Bosta', tracking_number: 'TRK1' },
         'en'
       );
     });

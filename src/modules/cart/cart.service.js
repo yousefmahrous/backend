@@ -7,7 +7,12 @@ import logger from '../../core/logger.js';
 const serializeCartItem = (item) => ({
   id: item.id,
   quantity: item.quantity,
-  book: {
+  variant: {
+    id: item.variant.id,
+    sku: item.variant.sku,
+    options: item.variant.options
+  },
+  product: {
     id: item.variant.product.id,
     name: item.variant.product.title,
     number: item.variant.product.isbn,
@@ -24,17 +29,17 @@ const serializeCart = (cart) => ({
   itemsCount: cart.items.reduce((sum, i) => sum + i.quantity, 0)
 });
 
-const emitBooksUpdated = () => {
+const emitProductsUpdated = () => {
   try {
-    getIO().emit('books_updated');
+    getIO().emit('products_updated');
   } catch (err) {
     logger.warn({ err }, 'تخطي خطأ إرسال حدث تحديث الكتب عبر السوكيت');
   }
 };
 
-const invalidateBookCache = async (bookId) => {
+const invalidateProductCache = async (productId) => {
   try {
-    await redisClient.del(['books:all', `books:${bookId}`]);
+    await redisClient.del(['products:all', `products:${productId}`]);
   } catch (redisErr) {
     logger.warn({ err: redisErr }, 'تخطي خطأ مسح الكاش من Redis أثناء تحديث الكمية');
   }
@@ -51,16 +56,26 @@ export const getCart = async (t, userId) => {
   }
 };
 
-export const addToCart = async (t, userId, bookId) => {
+export const addToCart = async (t, userId, productId, variantId) => {
   try {
-    const variant = await cartRepo.getVariantByBookId(bookId);
+    let variant;
+    if (variantId) {
+      variant = await cartRepo.getVariantById(variantId);
+      if (variant && productId && variant.product_id !== productId) variant = null;
+    } else {
+      const variants = await cartRepo.getVariantsByProductId(productId);
+      if (variants.length > 1) {
+        return { success: false, status: 400, message: t('cart.variantRequired') };
+      }
+      variant = variants[0];
+    }
     if (!variant) {
-      return { success: false, status: 404, message: t('cart.bookNotFound') };
+      return { success: false, status: 404, message: t('cart.productNotFound') };
     }
 
-    // A vendor can't buy their own books (fake sales / commission abuse).
+    // A vendor can't buy their own products (fake sales / commission abuse).
     if (variant.product?.vendor?.owner_id === userId) {
-      return { success: false, status: 403, message: t('cart.ownBook') };
+      return { success: false, status: 403, message: t('cart.ownProduct') };
     }
 
     const cart = await cartRepo.getOrCreateCart(userId);
@@ -76,8 +91,8 @@ export const addToCart = async (t, userId, bookId) => {
 
     const updatedCart = await cartRepo.getOrCreateCart(userId);
 
-    await invalidateBookCache(bookId);
-    emitBooksUpdated();
+    await invalidateProductCache(variant.product_id);
+    emitProductsUpdated();
 
     return { success: true, status: 201, data: serializeCart(updatedCart), message: t('cart.addSuccess') };
   } catch (err) {
@@ -112,8 +127,8 @@ export const updateQuantity = async (t, userId, itemId, quantity) => {
 
     const updatedCart = await cartRepo.getOrCreateCart(userId);
 
-    await invalidateBookCache(item.variant.product.id);
-    emitBooksUpdated();
+    await invalidateProductCache(item.variant.product.id);
+    emitProductsUpdated();
 
     return { success: true, status: 200, data: serializeCart(updatedCart) };
   } catch (err) {
@@ -133,8 +148,8 @@ export const removeFromCart = async (t, userId, itemId) => {
 
     const updatedCart = await cartRepo.getOrCreateCart(userId);
 
-    await invalidateBookCache(item.variant.product.id);
-    emitBooksUpdated();
+    await invalidateProductCache(item.variant.product.id);
+    emitProductsUpdated();
 
     return { success: true, status: 200, data: serializeCart(updatedCart), message: t('cart.removeSuccess') };
   } catch (err) {

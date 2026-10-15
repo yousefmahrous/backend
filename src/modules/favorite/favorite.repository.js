@@ -3,26 +3,26 @@ import prisma from '../../core/db.js';
 export const getFavoritesByUser = async (userId) => {
   return prisma.favorite.findMany({
     where: { user_id: userId },
-    include: { book: true },
+    include: { product: true },
     orderBy: { created_at: 'desc' }
   });
 };
 
-export const findFavorite = async (userId, bookId) => {
+export const findFavorite = async (userId, productId) => {
   return prisma.favorite.findUnique({
-    where: { user_id_book_id: { user_id: userId, book_id: bookId } }
+    where: { user_id_product_id: { user_id: userId, product_id: productId } }
   });
 };
 
-export const addFavorite = async (userId, bookId) => {
+export const addFavorite = async (userId, productId) => {
   return prisma.$transaction(async (tx) => {
     const favorite = await tx.favorite.create({
-      data: { user_id: userId, book_id: bookId },
-      include: { book: true }
+      data: { user_id: userId, product_id: productId },
+      include: { product: true }
     });
 
-    await tx.book.update({
-      where: { id: bookId },
+    await tx.product.update({
+      where: { id: productId },
       data: {
         favorites_count: { increment: 1 },
         popularity_score: { increment: 1 }
@@ -33,12 +33,12 @@ export const addFavorite = async (userId, bookId) => {
   });
 };
 
-export const removeFavorite = async (userId, bookId) => {
+export const removeFavorite = async (userId, productId) => {
   return prisma.favorite.delete({
-    where: { user_id_book_id: { user_id: userId, book_id: bookId } }
+    where: { user_id_product_id: { user_id: userId, product_id: productId } }
   });
 };
 
-export const getBookById = async (bookId) => {
-  return prisma.book.findUnique({ where: { id: bookId } });
+export const getProductById = async (productId) => {
+  return prisma.product.findUnique({ where: { id: productId } });
 };

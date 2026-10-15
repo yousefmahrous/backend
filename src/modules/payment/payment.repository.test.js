@@ -7,7 +7,7 @@ const tx = {
   cartItem: { deleteMany: vi.fn() },
   orderItem: { createMany: vi.fn() },
   cart: { findUnique: vi.fn() },
-  cartItem: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  cartItem: { findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
   productVariant: { updateMany: vi.fn() },
 };
 
@@ -22,9 +22,9 @@ const paymentRepo = await import('./payment.repository.js');
 
 const makeCart = () => ({
   items: [
-    { book_id: 1, quantity: 2, variant: { id: 10, price: 100, product: { vendor_id: 7 } } },
-    { book_id: 2, quantity: 1, variant: { id: 20, price: 250, product: { vendor_id: 8 } } },
-    { book_id: 3, quantity: 1, variant: { id: 30, price: 50, product: { vendor_id: 7 } } },
+    { product_id: 1, quantity: 2, variant: { id: 10, price: 100, product: { vendor_id: 7 } } },
+    { product_id: 2, quantity: 1, variant: { id: 20, price: 250, product: { vendor_id: 8 } } },
+    { product_id: 3, quantity: 1, variant: { id: 30, price: 50, product: { vendor_id: 7 } } },
   ],
 });
 
@@ -53,17 +53,17 @@ describe('payment.repository', () => {
       }));
     });
 
-    it('prices the total and every order item from the variant price, not a book price', async () => {
+    it('prices the total and every order item from the variant price, not a product price', async () => {
       await paymentRepo.createPendingOrderFromCart(5, makeCart(), shipping);
 
       const { data } = tx.order.create.mock.calls[0][0];
       expect(data.total_amount).toBe(2 * 100 + 1 * 250 + 1 * 50);
 
       const { data: items } = tx.orderItem.createMany.mock.calls[0][0];
-      expect(items.map(({ book_id, quantity, unit_price }) => ({ book_id, quantity, unit_price }))).toEqual([
-        { book_id: 1, quantity: 2, unit_price: 100 },
-        { book_id: 2, quantity: 1, unit_price: 250 },
-        { book_id: 3, quantity: 1, unit_price: 50 },
+      expect(items.map(({ product_id, quantity, unit_price }) => ({ product_id, quantity, unit_price }))).toEqual([
+        { product_id: 1, quantity: 2, unit_price: 100 },
+        { product_id: 2, quantity: 1, unit_price: 250 },
+        { product_id: 3, quantity: 1, unit_price: 50 },
       ]);
     });
 
@@ -100,7 +100,7 @@ describe('payment.repository', () => {
       await paymentRepo.createPendingOrderFromCart(5, makeCart(), shipping);
 
       const { data: items } = tx.orderItem.createMany.mock.calls[0][0];
-      expect(items.map((i) => [i.book_id, i.vendor_order_id])).toEqual([
+      expect(items.map((i) => [i.product_id, i.vendor_order_id])).toEqual([
         [1, 100],
         [2, 101],
         [3, 100],
@@ -202,17 +202,18 @@ describe('payment.repository', () => {
       tx.order.update.mockResolvedValue({
         id: 1,
         user_id: 5,
-        items: [{ book_id: 1, quantity: 3 }],
+        items: [{ product_id: 1, variant_id: 10, quantity: 3 }],
       });
       tx.cart.findUnique.mockResolvedValue({ id: 9, user_id: 5 });
-      tx.cartItem.findUnique.mockResolvedValue({ id: 99, quantity: 3 });
+      tx.cartItem.findFirst.mockResolvedValue({ id: 99, quantity: 3 });
 
       await paymentRepo.markOrderFailed(1);
 
+      expect(tx.cartItem.findFirst).toHaveBeenCalledWith({ where: { cart_id: 9, variant_id: 10 } });
       expect(tx.cartItem.delete).toHaveBeenCalledWith({ where: { id: 99 } });
       expect(tx.cartItem.update).not.toHaveBeenCalled();
       expect(tx.productVariant.updateMany).toHaveBeenCalledWith({
-        where: { product_id: 1 },
+        where: { id: 10 },
         data: { stock: { increment: 3 } },
       });
     });
@@ -222,10 +223,10 @@ describe('payment.repository', () => {
       tx.order.update.mockResolvedValue({
         id: 1,
         user_id: 5,
-        items: [{ book_id: 1, quantity: 3 }],
+        items: [{ product_id: 1, quantity: 3 }],
       });
       tx.cart.findUnique.mockResolvedValue({ id: 9, user_id: 5 });
-      tx.cartItem.findUnique.mockResolvedValue({ id: 99, quantity: 5 });
+      tx.cartItem.findFirst.mockResolvedValue({ id: 99, quantity: 5 });
 
       await paymentRepo.markOrderFailed(1);
 
@@ -245,10 +246,10 @@ describe('payment.repository', () => {
       tx.order.update.mockResolvedValue({
         id: 1,
         user_id: 5,
-        items: [{ book_id: 1, quantity: 3 }],
+        items: [{ product_id: 1, quantity: 3 }],
       });
       tx.cart.findUnique.mockResolvedValue({ id: 9, user_id: 5 });
-      tx.cartItem.findUnique.mockResolvedValue(null);
+      tx.cartItem.findFirst.mockResolvedValue(null);
 
       await paymentRepo.markOrderFailed(1);
 
@@ -260,13 +261,13 @@ describe('payment.repository', () => {
       tx.order.update.mockResolvedValue({
         id: 1,
         user_id: 5,
-        items: [{ book_id: 1, quantity: 3 }],
+        items: [{ product_id: 1, quantity: 3 }],
       });
       tx.cart.findUnique.mockResolvedValue(null);
 
       await paymentRepo.markOrderFailed(1);
 
-      expect(tx.cartItem.findUnique).not.toHaveBeenCalled();
+      expect(tx.cartItem.findFirst).not.toHaveBeenCalled();
       expect(tx.productVariant.updateMany).not.toHaveBeenCalled();
     });
   });

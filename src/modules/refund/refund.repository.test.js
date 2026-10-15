@@ -21,7 +21,7 @@ vi.mock('../../core/config/redis.client.js', () => ({
 const prisma = (await import('../../core/db.js')).default;
 const refundRepo = await import('./refund.repository.js');
 
-const items = (...pairs) => pairs.map(([book_id, quantity]) => ({ book_id, quantity }));
+const items = (...pairs) => pairs.map(([product_id, quantity]) => ({ product_id, quantity }));
 
 describe('refund.repository', () => {
   beforeEach(() => {
@@ -121,7 +121,7 @@ describe('refund.repository', () => {
       tx.refundRequest.update.mockResolvedValue({ id: 1, status: 'completed' });
     });
 
-    it("refunds the shipment and returns ITS items' stock to the variants, not the stale book column", async () => {
+    it("refunds the shipment and returns ITS items' stock to the variants, not the stale product column", async () => {
       tx.refundRequest.findUnique.mockResolvedValue(request());
       tx.vendorOrder.findMany.mockResolvedValue([{ id: 3, items: items([1, 2], [2, 1]) }]);
       tx.vendorOrder.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
@@ -139,7 +139,7 @@ describe('refund.repository', () => {
       });
     });
 
-    it("only restocks the refunded vendor's books, not the other vendors' in the same order", async () => {
+    it("only restocks the refunded vendor's products, not the other vendors' in the same order", async () => {
       tx.refundRequest.findUnique.mockResolvedValue(request());
       tx.vendorOrder.findMany.mockResolvedValue([{ id: 3, items: items([1, 2]) }]);
       tx.vendorOrder.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);

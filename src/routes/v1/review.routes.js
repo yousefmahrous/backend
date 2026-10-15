@@ -6,18 +6,18 @@ import { doubleCsrfProtection } from '../../core/config/csrf.config.js';
 
 const router = express.Router();
 
-router.get('/books/:bookId', async (req, res) => {
+router.get('/products/:productId', async (req, res) => {
   const { page, limit } = req.query;
-  const { status, ...response } = await reviewService.getReviewsForBook(
+  const { status, ...response } = await reviewService.getReviewsForProduct(
     req.t,
-    parseInt(req.params.bookId),
+    parseInt(req.params.productId),
     page,
     limit
   );
   res.status(status).json(response);
 });
 
-router.post('/books/:bookId', authMiddleware, doubleCsrfProtection, async (req, res) => {
+router.post('/products/:productId', authMiddleware, doubleCsrfProtection, async (req, res) => {
   if (req.user.role === 'admin') {
     return res.status(403).json({ success: false, message: req.t('review.customersOnly') });
   }
@@ -31,7 +31,7 @@ router.post('/books/:bookId', authMiddleware, doubleCsrfProtection, async (req, 
   const { status, ...response } = await reviewService.addOrUpdateReview(
     req.t,
     req.user.id,
-    parseInt(req.params.bookId),
+    parseInt(req.params.productId),
     result.data
   );
   res.status(status).json(response);

@@ -31,13 +31,13 @@ model User {
   @@map("users")
 }
 
-model Book {
+model Product {
   id               Int     @id @default(autoincrement())
   title            Json
-  isbn             String
-  publisher_email  String
+  isbn             String?
+  publisher_email  String?
   description      Json
-  publisher        String
+  publisher        String?
   category         String
   category_id      Int?
   categoryRef      Category? @relation(fields: [category_id], references: [id], onDelete: Restrict)
@@ -66,13 +66,13 @@ model Book {
   @@index([vendor_id])
   @@index([category_id])
   @@index([status])
-  @@map("books")
+  @@map("products")
 }
 
 model ProductVariant {
   id         Int      @id @default(autoincrement())
   product_id Int
-  product    Book     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
   sku        String?
   barcode    String?
   options    Json     @default("{}")
@@ -82,6 +82,7 @@ model ProductVariant {
   updated_at DateTime @updatedAt
 
   cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@unique([product_id, sku])
   @@index([product_id])
@@ -95,7 +96,7 @@ model Category {
   parent_id  Int?
   parent     Category?  @relation("CategoryTree", fields: [parent_id], references: [id], onDelete: Restrict)
   children   Category[] @relation("CategoryTree")
-  products   Book[]
+  products   Product[]
   created_at DateTime   @default(now())
 
   @@index([parent_id])
@@ -114,7 +115,7 @@ model Vendor {
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
-  books          Book[]
+  products          Product[]
   vendorOrders   VendorOrder[]
   payouts        Payout[]
 
@@ -165,8 +166,6 @@ model VendorOrder {
   shipped_at         DateTime?
   delivered_at       DateTime?
 
-  // Money snapshot, frozen when the order is paid so later commission-rate
-  // changes never rewrite history. All amounts are in piastres.
   commission_bps     Int?
   gross_amount       Int?
   commission_amount  Int?
@@ -175,8 +174,7 @@ model VendorOrder {
   payout_id          Int?
   payout             Payout?    @relation(fields: [payout_id], references: [id], onDelete: SetNull)
 
-  // Return state of THIS shipment only: null | requested | approved | refunded.
-  // Other vendors' shipments in the same order are unaffected.
+
   return_status      String?
   refunded_at        DateTime?
   refundRequests     RefundRequest[]
@@ -223,8 +221,7 @@ model RefundRequest {
   reviewed_at DateTime?
   updated_at  DateTime  @updatedAt
 
-  // The shipment (one vendor's part of the order) being returned.
-  // NULL on legacy requests, which cover the whole order.
+
   vendor_order_id Int?
   vendor_order    VendorOrder? @relation(fields: [vendor_order_id], references: [id], onDelete: SetNull)
   refund_amount   Int?
@@ -263,14 +260,17 @@ model OrderItem {
   id              Int          @id @default(autoincrement())
   order_id        Int
   order           Order        @relation(fields: [order_id], references: [id], onDelete: Cascade)
-  book_id         Int
-  book            Book         @relation(fields: [book_id], references: [id])
+  product_id         Int
+  product            Product         @relation(fields: [product_id], references: [id])
   vendor_order_id Int?
   vendorOrder     VendorOrder? @relation(fields: [vendor_order_id], references: [id], onDelete: SetNull)
   quantity        Int
   unit_price      Int
+  variant_id      Int?
+  variant         ProductVariant? @relation(fields: [variant_id], references: [id], onDelete: SetNull)
 
   @@index([vendor_order_id])
+  @@index([variant_id])
   @@map("order_items")
 }
 
@@ -289,14 +289,13 @@ model CartItem {
   id         Int             @id @default(autoincrement())
   cart_id    Int
   cart       Cart            @relation(fields: [cart_id], references: [id], onDelete: Cascade)
-  book_id    Int
-  book       Book            @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  product_id    Int
+  product       Product            @relation(fields: [product_id], references: [id], onDelete: Cascade)
   variant_id Int?
   variant    ProductVariant? @relation(fields: [variant_id], references: [id], onDelete: Cascade)
   quantity   Int             @default(1)
   created_at DateTime        @default(now())
 
-  @@unique([cart_id, book_id])
   @@unique([cart_id, variant_id])
   @@index([variant_id])
   @@map("cart_items")
@@ -306,11 +305,11 @@ model Favorite {
   id         Int      @id @default(autoincrement())
   user_id    Int
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  book_id    Int
-  book       Book     @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  product_id    Int
+  product       Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
   created_at DateTime @default(now())
 
-  @@unique([user_id, book_id])
+  @@unique([user_id, product_id])
   @@map("favorites")
 }
 
@@ -318,14 +317,14 @@ model Review {
   id         Int      @id @default(autoincrement())
   user_id    Int
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  book_id    Int
-  book       Book     @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  product_id    Int
+  product       Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
   rating     Int
   comment    String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@unique([user_id, book_id])
+  @@unique([user_id, product_id])
   @@map("reviews")
 }
 

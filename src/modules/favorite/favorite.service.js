@@ -3,13 +3,13 @@ import logger from '../../core/logger.js';
 
 const serializeFavorite = (fav) => ({
   id: fav.id,
-  book: {
-    id: String(fav.book.id),
-    name: fav.book.title,
-    number: fav.book.isbn,
-    category: fav.book.category,
-    avatar_url: fav.book.cover_url,
-    stock: fav.book.stock
+  product: {
+    id: String(fav.product.id),
+    name: fav.product.title,
+    number: fav.product.isbn,
+    category: fav.product.category,
+    avatar_url: fav.product.cover_url,
+    stock: fav.product.stock
   }
 });
 
@@ -28,19 +28,19 @@ export const getFavorites = async (t, userId) => {
   }
 };
 
-export const addFavorite = async (t, userId, bookId) => {
+export const addFavorite = async (t, userId, productId) => {
   try {
-    const book = await favoriteRepo.getBookById(bookId);
-    if (!book) {
-      return { success: false, status: 404, message: t('favorite.bookNotFound') };
+    const product = await favoriteRepo.getProductById(productId);
+    if (!product) {
+      return { success: false, status: 404, message: t('favorite.productNotFound') };
     }
 
-    const existing = await favoriteRepo.findFavorite(userId, bookId);
+    const existing = await favoriteRepo.findFavorite(userId, productId);
     if (existing) {
       return { success: false, status: 400, message: t('favorite.alreadyExists') };
     }
 
-    await favoriteRepo.addFavorite(userId, bookId);
+    await favoriteRepo.addFavorite(userId, productId);
 
     const updatedFavorites = await favoriteRepo.getFavoritesByUser(userId);
     return {
@@ -55,14 +55,14 @@ export const addFavorite = async (t, userId, bookId) => {
   }
 };
 
-export const removeFavorite = async (t, userId, bookId) => {
+export const removeFavorite = async (t, userId, productId) => {
   try {
-    const existing = await favoriteRepo.findFavorite(userId, bookId);
+    const existing = await favoriteRepo.findFavorite(userId, productId);
     if (!existing) {
       return { success: false, status: 404, message: t('favorite.notInFavorites') };
     }
 
-    await favoriteRepo.removeFavorite(userId, bookId);
+    await favoriteRepo.removeFavorite(userId, productId);
 
     const updatedFavorites = await favoriteRepo.getFavoritesByUser(userId);
     return {

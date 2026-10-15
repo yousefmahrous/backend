@@ -1,12 +1,12 @@
 import prisma from '../../core/db.js';
 
 const ORDER_INCLUDE = {
-  items: { include: { book: true } },
+  items: { include: { product: true } },
   vendorOrders: {
     orderBy: { id: 'asc' },
     include: {
       vendor: { select: { id: true, store_name: true } },
-      items: { include: { book: true } }
+      items: { include: { product: true } }
     }
   }
 };

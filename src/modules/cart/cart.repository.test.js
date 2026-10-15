@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const tx = {
   productVariant: { updateMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
-  book: { update: vi.fn() },
+  product: { update: vi.fn() },
   cartItem: { upsert: vi.fn(), findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
 };
 
@@ -39,7 +39,7 @@ describe('cart.repository', () => {
       expect(tx.cartItem.upsert).toHaveBeenCalledWith({
         where: { cart_id_variant_id: { cart_id: 1, variant_id: 10 } },
         update: { quantity: { increment: 2 } },
-        create: { cart_id: 1, book_id: 1, variant_id: 10, quantity: 2 },
+        create: { cart_id: 1, product_id: 1, variant_id: 10, quantity: 2 },
         include: expect.any(Object),
       });
     });
@@ -50,17 +50,17 @@ describe('cart.repository', () => {
       await expect(cartRepo.reserveAndAddItem(1, 10, 5)).rejects.toThrow('OUT_OF_STOCK');
 
       expect(tx.cartItem.upsert).not.toHaveBeenCalled();
-      expect(tx.book.update).not.toHaveBeenCalled();
+      expect(tx.product.update).not.toHaveBeenCalled();
     });
 
-    it('bumps the popularity counters on the parent book, not the variant', async () => {
+    it('bumps the popularity counters on the parent product, not the variant', async () => {
       tx.productVariant.updateMany.mockResolvedValue({ count: 1 });
       tx.productVariant.findUnique.mockResolvedValue({ id: 10, product_id: 7 });
       tx.cartItem.upsert.mockResolvedValue({ id: 1 });
 
       await cartRepo.reserveAndAddItem(1, 10, 1);
 
-      expect(tx.book.update).toHaveBeenCalledWith({
+      expect(tx.product.update).toHaveBeenCalledWith({
         where: { id: 7 },
         data: { cart_adds_count: { increment: 1 }, popularity_score: { increment: 2 } },
       });
@@ -140,11 +140,11 @@ describe('cart.repository', () => {
     });
   });
 
-  describe('getVariantByBookId', () => {
-    it('looks up the variant by the book (product) id', async () => {
+  describe('getVariantByProductId', () => {
+    it('looks up the variant by the product (product) id', async () => {
       prisma.productVariant.findFirst.mockResolvedValue({ id: 10, product_id: 1 });
 
-      const variant = await cartRepo.getVariantByBookId(1);
+      const variant = await cartRepo.getVariantByProductId(1);
 
       expect(prisma.productVariant.findFirst).toHaveBeenCalledWith({
         where: { product_id: 1 },

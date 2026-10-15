@@ -20,11 +20,16 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/items', doubleCsrfProtection, async (req, res) => {
-  const { book_id } = req.body;
-  if (!book_id) {
-    return res.status(400).json({ success: false, message: req.t('cart.bookIdRequired') });
+  const { product_id, variant_id } = req.body;
+  if (!product_id && !variant_id) {
+    return res.status(400).json({ success: false, message: req.t('cart.productIdRequired') });
   }
-  const { status, ...response } = await cartService.addToCart(req.t, req.user.id, parseInt(book_id));
+  const productId = product_id ? parseInt(product_id) : undefined;
+  const variantId = variant_id ? parseInt(variant_id) : undefined;
+  if (Number.isNaN(productId) || Number.isNaN(variantId)) {
+    return res.status(400).json({ success: false, message: req.t('cart.productIdRequired') });
+  }
+  const { status, ...response } = await cartService.addToCart(req.t, req.user.id, productId, variantId);
   res.status(status).json(response);
 });
 

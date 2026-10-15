@@ -1,5 +1,5 @@
 import express from 'express';
-import bookRoutes from './book.routes.js';
+import productRoutes from './product.routes.js';
 import authRoutes from './auth.routes.js';
 import uploadRoutes from './upload.routes.js';
 import cartRoutes from './cart.routes.js';
@@ -14,11 +14,12 @@ import csrfRoutes from './csrf.routes.js';
 import vendorRoutes from './vendor.routes.js';
 import payoutRoutes from './payout.routes.js';
 import settingsRoutes from './settings.routes.js';
+import categoryRoutes from './category.routes.js';
 
 
 const router = express.Router();
 
-router.use('/books', bookRoutes);
+router.use('/products', productRoutes);
 router.use('/auth', authRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/cart', cartRoutes);
@@ -33,5 +34,6 @@ router.use('/csrf-token', csrfRoutes);
 router.use('/vendors', vendorRoutes);
 router.use('/payouts', payoutRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/categories', categoryRoutes);
 
 export default router;

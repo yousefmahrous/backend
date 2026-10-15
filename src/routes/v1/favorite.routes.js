@@ -20,19 +20,19 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/items', doubleCsrfProtection, async (req, res) => {
-  const { book_id } = req.body;
-  if (!book_id) {
-    return res.status(400).json({ success: false, message: req.t('favorite.bookIdRequired') });
+  const { product_id } = req.body;
+  if (!product_id) {
+    return res.status(400).json({ success: false, message: req.t('favorite.productIdRequired') });
   }
-  const { status, ...response } = await favoriteService.addFavorite(req.t, req.user.id, parseInt(book_id));
+  const { status, ...response } = await favoriteService.addFavorite(req.t, req.user.id, parseInt(product_id));
   res.status(status).json(response);
 });
 
-router.delete('/items/:bookId', doubleCsrfProtection, async (req, res) => {
+router.delete('/items/:productId', doubleCsrfProtection, async (req, res) => {
   const { status, ...response } = await favoriteService.removeFavorite(
     req.t,
     req.user.id,
-    parseInt(req.params.bookId)
+    parseInt(req.params.productId)
   );
   res.status(status).json(response);
 });

@@ -235,7 +235,7 @@ describe('refund.service', () => {
       vendor_order: {
         id: 3,
         items: [],
-        vendor: { id: 7, store_name: 'Cairo Books', owner: { name: 'Ali', email: 'ali@x.com', preferred_lang: 'en' } },
+        vendor: { id: 7, store_name: 'Cairo Products', owner: { name: 'Ali', email: 'ali@x.com', preferred_lang: 'en' } },
       },
     };
 
@@ -251,7 +251,7 @@ describe('refund.service', () => {
       expect(addVendorReturnEmailJob).toHaveBeenCalledWith(
         'ali@x.com',
         'Ali',
-        { order_id: 1, store_name: 'Cairo Books', amount: 200 },
+        { order_id: 1, store_name: 'Cairo Products', amount: 200 },
         'en'
       );
     });
@@ -259,7 +259,7 @@ describe('refund.service', () => {
     it('does not leak the vendor owner (email) in the response', async () => {
       const result = await refundService.requestRefund(t, 'ar', 1, 5, 'damaged');
 
-      expect(result.data.shipment.vendor).toEqual({ id: 7, store_name: 'Cairo Books' });
+      expect(result.data.shipment.vendor).toEqual({ id: 7, store_name: 'Cairo Products' });
     });
 
     it('still succeeds when queueing the email fails', async () => {
@@ -282,7 +282,7 @@ describe('refund.service', () => {
             created_at: 'c',
             reviewed_at: null,
             user: { id: 5, name: 'Customer', email: 'c@x.com' },
-            vendor_order: { items: [{ book_id: 1, book: { title: { ar: 'كتاب', en: 'Book' } }, quantity: 2, unit_price: 100 }] },
+            vendor_order: { items: [{ product_id: 1, product: { title: { ar: 'كتاب', en: 'Product' } }, quantity: 2, unit_price: 100 }] },
           },
         ],
         totalCount: 1,
@@ -299,7 +299,7 @@ describe('refund.service', () => {
         refund_amount: 200,
         created_at: 'c',
         reviewed_at: null,
-        items: [{ book_id: 1, title: 'Book', quantity: 2, unit_price: 100 }],
+        items: [{ product_id: 1, title: 'Product', quantity: 2, unit_price: 100 }],
       });
     });
   });

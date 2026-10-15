@@ -1,27 +1,27 @@
 import prisma from '../../core/db.js';
 
-export const getBookById = async (bookId) => {
-  return prisma.book.findUnique({ where: { id: bookId } });
+export const getProductById = async (productId) => {
+  return prisma.product.findUnique({ where: { id: productId } });
 };
 
-export const getReviewsByBook = async (bookId, skip, take) => {
+export const getReviewsByProduct = async (productId, skip, take) => {
   const [reviews, totalCount] = await Promise.all([
     prisma.review.findMany({
-      where: { book_id: bookId },
+      where: { product_id: productId },
       include: { user: { select: { id: true, name: true } } },
       orderBy: { created_at: 'desc' },
       skip,
       take
     }),
-    prisma.review.count({ where: { book_id: bookId } })
+    prisma.review.count({ where: { product_id: productId } })
   ]);
 
   return { reviews, totalCount };
 };
 
-export const findReview = async (userId, bookId) => {
+export const findReview = async (userId, productId) => {
   return prisma.review.findUnique({
-    where: { user_id_book_id: { user_id: userId, book_id: bookId } }
+    where: { user_id_product_id: { user_id: userId, product_id: productId } }
   });
 };
 
@@ -29,9 +29,9 @@ export const getReviewById = async (id) => {
   return prisma.review.findUnique({ where: { id } });
 };
 
-const recalculateBookRating = async (tx, bookId) => {
+const recalculateProductRating = async (tx, productId) => {
   const aggregate = await tx.review.aggregate({
-    where: { book_id: bookId },
+    where: { product_id: productId },
     _avg: { rating: true },
     _count: { rating: true }
   });
@@ -40,8 +40,8 @@ const recalculateBookRating = async (tx, bookId) => {
     ? Math.round(aggregate._avg.rating * 10) / 10
     : 0;
 
-  await tx.book.update({
-    where: { id: bookId },
+  await tx.product.update({
+    where: { id: productId },
     data: {
       rating_average: ratingAverage,
       reviews_count: aggregate._count.rating
@@ -51,25 +51,25 @@ const recalculateBookRating = async (tx, bookId) => {
   return { ratingAverage, reviewsCount: aggregate._count.rating };
 };
 
-export const upsertReview = async (userId, bookId, rating, comment) => {
+export const upsertReview = async (userId, productId, rating, comment) => {
   return prisma.$transaction(async (tx) => {
     const review = await tx.review.upsert({
-      where: { user_id_book_id: { user_id: userId, book_id: bookId } },
+      where: { user_id_product_id: { user_id: userId, product_id: productId } },
       update: { rating, comment },
-      create: { user_id: userId, book_id: bookId, rating, comment },
+      create: { user_id: userId, product_id: productId, rating, comment },
       include: { user: { select: { id: true, name: true } } }
     });
 
-    const bookRating = await recalculateBookRating(tx, bookId);
+    const productRating = await recalculateProductRating(tx, productId);
 
-    return { review, bookRating };
+    return { review, productRating };
   });
 };
 
-export const deleteReview = async (id, bookId) => {
+export const deleteReview = async (id, productId) => {
   return prisma.$transaction(async (tx) => {
     await tx.review.delete({ where: { id } });
-    const bookRating = await recalculateBookRating(tx, bookId);
-    return { bookRating };
+    const productRating = await recalculateProductRating(tx, productId);
+    return { productRating };
   });
 };

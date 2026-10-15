@@ -10,16 +10,16 @@ import logger from '../../core/logger.js';
 
 const PENDING_ORDER_EXPIRY_MINUTES = 30;
 
-const invalidateBookCache = async (bookId) => {
+const invalidateProductCache = async (productId) => {
   try {
-    await redisClient.del(['books:all', `books:${bookId}`]);
+    await redisClient.del(['products:all', `products:${productId}`]);
   } catch (redisErr) {
   }
 };
 
-const emitBooksUpdated = () => {
+const emitProductsUpdated = () => {
   try {
-    getIO().emit('books_updated');
+    getIO().emit('products_updated');
   } catch (err) {
   }
 };
@@ -51,9 +51,9 @@ export const expireStalePendingOrders = async (userId) => {
 
       if (failedOrder?.items?.length) {
         for (const item of failedOrder.items) {
-          await invalidateBookCache(item.book_id);
+          await invalidateProductCache(item.product_id);
         }
-        emitBooksUpdated();
+        emitProductsUpdated();
         await queuePaymentFailedEmail(failedOrder);
       }
     }
@@ -69,7 +69,7 @@ export const createCheckoutSession = async (t, lang, userId, shipping) => {
       return { success: false, status: 400, message: t('payment.cartEmpty') };
     }
     if (cart.items.some((item) => item.variant?.product?.vendor?.owner_id === userId)) {
-      return { success: false, status: 400, message: t('payment.ownBooksInCart') };
+      return { success: false, status: 400, message: t('payment.ownProductsInCart') };
     }
 
     const existingPending = await paymentRepo.findPendingOrderByUser(userId);
@@ -88,7 +88,7 @@ export const createCheckoutSession = async (t, lang, userId, shipping) => {
     const line_items = order.items.map((item) => ({
       price_data: {
         currency: 'egp',
-        product_data: { name: pickLocalized(item.book.title, lang) },
+        product_data: { name: pickLocalized(item.product.title, lang) },
         unit_amount: item.unit_price
       },
       quantity: item.quantity
@@ -155,9 +155,9 @@ export const handleWebhookEvent = async (rawBody, signature) => {
 
       if (failedOrder?.items?.length) {
         for (const item of failedOrder.items) {
-          await invalidateBookCache(item.book_id);
+          await invalidateProductCache(item.product_id);
         }
-        emitBooksUpdated();
+        emitProductsUpdated();
         await queuePaymentFailedEmail(failedOrder);
       }
       break;
@@ -168,7 +168,7 @@ export const handleWebhookEvent = async (rawBody, signature) => {
       const paymentIntentId = charge.payment_intent;
       if (paymentIntentId && charge.refunded === true) {
         const order = await refundRepo.markOrderRefundedFromWebhook(paymentIntentId);
-        if (order) emitBooksUpdated();
+        if (order) emitProductsUpdated();
       }
       break;
     }
