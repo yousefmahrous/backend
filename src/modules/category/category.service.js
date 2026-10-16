@@ -51,7 +51,12 @@ export const removeCategory = async (t, id) => {
     if (err.code === 'P2025') {
       return { success: false, status: 404, message: t('category.notFound') };
     }
-    if (err.code === 'P2003') {
+
+    const isForeignKeyError =
+      err.code === 'P2003' ||
+      err.code === 'P2039' ||
+      /foreign key|RESTRICT/i.test(err.message || '');
+    if (isForeignKeyError) {
       return { success: false, status: 409, message: t('category.inUse') };
     }
     logger.error({ err }, 'Unhandled error');
