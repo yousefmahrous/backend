@@ -36,7 +36,6 @@
     "userNotFound": "User not found",
     "oldPasswordInvalid": "Current password is incorrect",
     "twofa": {
-      "adminOnly": "Two-factor authentication is available for admins only",
       "alreadyEnabled": "Two-factor authentication is already enabled",
       "notEnabled": "Two-factor authentication is not enabled",
       "setupNotStarted": "Start the setup first",

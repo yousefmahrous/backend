@@ -124,6 +124,26 @@ describe('auth.service', () => {
       expect(result).toEqual({ id: 1, name: 'Ali', email: 'a@b.com', role: 'admin' });
     });
 
+    it.each(['ADMIN', 'CUSTOMER', null])(
+      'signals requires2fa for any role (%s) once 2FA is enabled',
+      async (role) => {
+        authRepo.findUserByEmail.mockResolvedValue({
+          id: 1,
+          name: 'Ali',
+          email: 'a@b.com',
+          password: 'hashed',
+          is_email_verified: true,
+          role,
+          twofa_enabled: true,
+        });
+        bcrypt.compare.mockResolvedValue(true);
+
+        const result = await authService.login(t, { email: 'a@b.com', password: 'pw' });
+
+        expect(result.requires2fa).toBe(true);
+      }
+    );
+
     it('defaults role to "customer" when the user has none', async () => {
       authRepo.findUserByEmail.mockResolvedValue({
         id: 1,

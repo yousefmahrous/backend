@@ -62,7 +62,7 @@ export const login = async (t, data) => {
     name: user.name,
     email: user.email,
     role: normalizedRole,
-    ...(user.twofa_enabled && normalizedRole === 'admin' ? { requires2fa: true } : {})
+    ...(user.twofa_enabled ? { requires2fa: true } : {})
   };
 };
 

@@ -39,7 +39,6 @@ const loadUser = async (t, userId) => {
 
 export const startSetup = async (t, userId) => {
   const user = await loadUser(t, userId);
-  if (user.role?.toLowerCase() !== 'admin') throw new Error(t('auth.twofa.adminOnly'));
   if (user.twofa_enabled) throw new Error(t('auth.twofa.alreadyEnabled'));
 
   const { secret, encryptedSecret, qrDataUrl } = await generateSetup(user.email);
