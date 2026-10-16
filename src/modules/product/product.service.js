@@ -26,7 +26,6 @@ export const serializeProduct = (product) => {
       stock: v.stock,
     })),
     avatar_url: product.cover_url,
-    avatar_url: product.cover_url,
     avatar_key: product.cover_key,
   };
 };
@@ -183,5 +182,65 @@ export const getPopularProducts = async (t, limit = 10) => {
   } catch (err) {
     logger.error({ err: err }, 'Unhandled error');
     return { success: false, status: 500, message: t('common.serverError') };
+  }
+};
+
+const refreshProductCaches = async (id) => {
+  try {
+    await redisClient.del(['products:all', `products:${id}`]);
+  } catch (err) {
+    logger.warn({ err }, 'Skipped clearing the products cache');
+  }
+  try {
+    getIO().emit('products_updated');
+  } catch (err) {
+    logger.warn({ err }, 'Skipped the products_updated socket event');
+  }
+};
+
+const variantFailure = (t, err, fallbackKey) => {
+  if (err.code === 'VARIANT_DUPLICATE') {
+    return { success: false, status: 409, message: t('product.validation.variantDuplicate') };
+  }
+  if (err.code === 'P2002') {
+    return { success: false, status: 409, message: t('product.variantSkuTaken') };
+  }
+  if (err.code === 'LAST_VARIANT') {
+    return { success: false, status: 409, message: t('product.variantLastOne') };
+  }
+  logger.error({ err }, 'Unhandled error');
+  return { success: false, status: 500, message: t(fallbackKey) };
+};
+
+export const addProductVariant = async (t, productId, data, vendorId) => {
+  try {
+    const variant = await productRepo.addVariant(productId, data, vendorId);
+    if (!variant) return { success: false, status: 404, message: t('product.notFound') };
+    await refreshProductCaches(productId);
+    return { success: true, status: 201, message: t('product.variantAdded') };
+  } catch (err) {
+    return variantFailure(t, err, 'product.variantAddError');
+  }
+};
+
+export const editProductVariant = async (t, productId, variantId, data, vendorId) => {
+  try {
+    const variant = await productRepo.updateVariant(productId, variantId, data, vendorId);
+    if (!variant) return { success: false, status: 404, message: t('product.notFound') };
+    await refreshProductCaches(productId);
+    return { success: true, status: 200, message: t('product.variantUpdated') };
+  } catch (err) {
+    return variantFailure(t, err, 'product.variantUpdateError');
+  }
+};
+
+export const removeProductVariant = async (t, productId, variantId, vendorId) => {
+  try {
+    const removed = await productRepo.deleteVariant(productId, variantId, vendorId);
+    if (!removed) return { success: false, status: 404, message: t('product.notFound') };
+    await refreshProductCaches(productId);
+    return { success: true, status: 200, message: t('product.variantDeleted') };
+  } catch (err) {
+    return variantFailure(t, err, 'product.variantDeleteError');
   }
 };
