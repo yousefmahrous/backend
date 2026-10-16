@@ -106,3 +106,24 @@ export const markEmailAsVerified = async (userId) => {
     }
   });
 };
+
+export const saveTwofaSecret = async (userId, encryptedSecret) => {
+  await prisma.user.update({
+    where: { id: parseInt(userId) },
+    data: { twofa_secret: encryptedSecret, twofa_enabled: false }
+  });
+};
+
+export const enableTwofa = async (userId) => {
+  await prisma.user.update({
+    where: { id: parseInt(userId) },
+    data: { twofa_enabled: true }
+  });
+};
+
+export const disableTwofa = async (userId) => {
+  await prisma.user.update({
+    where: { id: parseInt(userId) },
+    data: { twofa_enabled: false, twofa_secret: null }
+  });
+};

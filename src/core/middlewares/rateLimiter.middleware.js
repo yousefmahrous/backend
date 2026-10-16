@@ -104,3 +104,32 @@ export const globalLimiter = rateLimit({
   }),
   handler: localizedHandler('common.rateLimit.global'),
 });
+
+export const twofaLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  keyGenerator: (req) =>
+    req.session?.pending2fa?.userId?.toString() ?? ipKeyGenerator(req.ip),
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:twofa-login:',
+  }),
+  handler: localizedHandler('common.rateLimit.twofa'),
+});
+
+export const twofaManageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  keyGenerator: (req) => req.user?.id?.toString() ?? ipKeyGenerator(req.ip),
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'rl:twofa-manage:',
+  }),
+  handler: localizedHandler('common.rateLimit.twofa'),
+});

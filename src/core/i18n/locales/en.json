@@ -12,7 +12,8 @@
       "resendVerification": "You've requested the verification link too many times. Please wait a bit and try again.",
       "contact": "You've sent too many messages, please try again in a bit",
       "checkout": "You've attempted checkout too many times. Please wait a bit and try again.",
-      "global": "Too many requests from your address, please wait a bit."
+      "global": "Too many requests from your address, please wait a bit.",
+      "twofa": "Too many attempts. Please try again later"
     }
   },
   "auth": {
@@ -34,6 +35,14 @@
     "resetTokenInvalid": "Invalid or expired reset link",
     "userNotFound": "User not found",
     "oldPasswordInvalid": "Current password is incorrect",
+    "twofa": {
+      "adminOnly": "Two-factor authentication is available for admins only",
+      "alreadyEnabled": "Two-factor authentication is already enabled",
+      "notEnabled": "Two-factor authentication is not enabled",
+      "setupNotStarted": "Start the setup first",
+      "invalidCode": "Invalid verification code",
+      "sessionExpired": "Your verification session expired. Please sign in again"
+    },
     "validation": {
       "nameMin": "Name must be at least 3 characters",
       "emailInvalid": "Invalid email format",

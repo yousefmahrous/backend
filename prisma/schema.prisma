@@ -18,6 +18,8 @@ model User {
   verification_token         String?
   verification_token_expires DateTime?
   preferred_lang         String    @default("ar")
+  twofa_enabled          Boolean   @default(false)
+  twofa_secret           String?   // stored encrypted (AES-256-GCM), never plain
 
   cart                   Cart?
   favorites              Favorite[]
