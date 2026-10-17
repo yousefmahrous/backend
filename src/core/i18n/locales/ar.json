@@ -241,6 +241,9 @@
       },
       "platformNotFound": "متجر المنصة غير موجود"
     },
+    "analytics": {
+      "loadError": "حدث خطأ أثناء تحميل التحليلات"
+    },
     "earnings": {
       "loadError": "حدث خطأ أثناء تحميل أرباحك"
     },

@@ -241,6 +241,9 @@
       },
       "platformNotFound": "The store's own vendor was not found"
     },
+    "analytics": {
+      "loadError": "An error occurred while loading your analytics"
+    },
     "earnings": {
       "loadError": "An error occurred while loading your earnings"
     },

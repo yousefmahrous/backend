@@ -12,6 +12,7 @@ import requireVendor from '../../core/middlewares/requireVendor.middleware.js';
 import * as productService from '../../modules/product/product.service.js';
 import * as vendorProductService from '../../modules/vendor/vendor.product.service.js';
 import * as vendorOrderService from '../../modules/vendor/vendor.order.service.js';
+import * as vendorAnalyticsService from '../../modules/vendor/vendor.analytics.service.js';
 import * as payoutService from '../../modules/payout/payout.service.js';
 import * as refundService from '../../modules/refund/refund.service.js';
 import { validateAdd, validateEdit, validateVariant } from '../../core/middlewares/validation.js';
@@ -51,6 +52,11 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
     limit,
     vendorStatus
   );
+  res.status(status).json(response);
+});
+
+router.get('/admin/analytics', requireAdmin, async (req, res) => {
+  const { status, ...response } = await vendorAnalyticsService.getAdminAnalytics(req.t, req.query.days);
   res.status(status).json(response);
 });
 
@@ -117,6 +123,16 @@ router.delete('/products/:id/variants/:variantId', requireVendor, doubleCsrfProt
 router.get('/returns', requireVendor, async (req, res) => {
   const { page, limit } = req.query;
   const { status, ...response } = await refundService.getVendorReturns(req.t, req.lang, req.vendor.id, page, limit);
+  res.status(status).json(response);
+});
+
+router.get('/analytics', requireVendor, async (req, res) => {
+  const { status, ...response } = await vendorAnalyticsService.getVendorAnalytics(
+    req.t,
+    req.lang,
+    req.vendor.id,
+    req.query.days
+  );
   res.status(status).json(response);
 });
 
